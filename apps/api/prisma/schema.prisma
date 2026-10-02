@@ -1,0 +1,28 @@
+// Prisma schema for Haushalt. SQLite (WAL mode enabled at runtime in src/db.ts).
+// The connection URL lives in prisma.config.ts; the app connects through a
+// driver adapter built from DATABASE_URL (src/db.ts).
+
+// Output is under apps/api/src so tsc compiles it into dist/generated/prisma.
+// It's gitignored build output — regenerate with `npm run db:generate`.
+// moduleFormat/importFileExtension are explicit because the compiled output
+// runs as plain Node ESM, where relative imports need a `.js` extension.
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A person, created on first request from the Authelia Remote-* headers.
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  displayName String
+  email       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

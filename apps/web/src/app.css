@@ -1,0 +1,61 @@
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f7f7f4, #16191a);
+  --surface: light-dark(#ffffff, #1f2324);
+  --fg: light-dark(#1c2321, #e8ecea);
+  --muted: light-dark(#66706c, #9aa5a1);
+  --accent: #2f6f5e;
+  --danger: light-dark(#b3261e, #f2b8b5);
+  --border: light-dark(#dfe3e0, #333a3b);
+  --radius: 12px;
+  --tap: 48px;
+  --gutter: 16px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 1rem/1.5 var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--gutter);
+  background: var(--accent);
+  color: #fff;
+}
+
+.app-bar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--gutter);
+}
+
+.greeting {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+}

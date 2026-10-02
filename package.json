@@ -1,0 +1,34 @@
+{
+  "name": "haushalts-todos",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Household to-do app for two",
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "./dev.sh",
+    "dev:api": "npm --workspace @haushalt/api run dev",
+    "dev:web": "npm --workspace @haushalt/web run dev",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "npm --workspace @haushalt/web run build",
+    "build:api": "npm --workspace @haushalt/api run build",
+    "db:generate": "npm --workspace @haushalt/api run db:generate",
+    "db:migrate": "npm --workspace @haushalt/api run db:migrate",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  },
+  "comment:overrides": "typescript: Prisma 7 pulls in typescript@7 and npm hoists it to the root, where svelte-check (which only supports TS <=6) would pick it up and crash. TypeScript 7 is the native compiler; svelte-check has no TS7-compatible release yet. Pin the whole tree to the newest TS the Svelte toolchain supports (6.x). better-sqlite3: the @prisma/adapter-better-sqlite3 driver adapter (the only real user) needs ^12.6.0, but prisma's *optional* better-sqlite3 peer (>=9.0.0) makes npm auto-install a second, newer copy (13.x) at the root, so two native modules compile in the image. Pin the whole tree to the adapter's 12.x line so there is exactly one. Bump this to match the adapter when a future Prisma upgrade moves it to 13.x. (Copied from the sibling project rezepte.)",
+  "overrides": {
+    "typescript": "6.0.3",
+    "better-sqlite3": "^12.6.0"
+  }
+}
