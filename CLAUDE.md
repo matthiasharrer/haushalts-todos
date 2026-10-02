@@ -167,6 +167,9 @@ PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright npm run e2e
   - Out-of-scope idea? Add it to `docs/ideas.md`.
   - End of session? Add one entry to `docs/worklog.md`.
   - Feature shipped? Add its cases to `docs/testing.md` and run them.
+- **The dev DB holds Matthias's own trial data** (he tests on :5173). Clean up
+  only what *you* seeded, by id or unique title. Never wipe tables. (On
+  2026-10-02 a blanket `delete from Task` took one of his tasks with it.)
 - TypeScript throughout, ES modules. Match the surrounding style.
 - Don't introduce SvelteKit, app-level login, a second database, or a static
   MCP token.
