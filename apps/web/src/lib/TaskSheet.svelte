@@ -8,27 +8,30 @@
   import Icon from './Icon.svelte';
 
   interface Props {
-    task: Task;
+    /** Omit to create a new recurring chore (create mode). */
+    task?: Task;
     today: string;
     onclose: () => void;
-    onsave: (patch: TaskPatch) => Promise<void>;
-    onskip: () => Promise<void>;
-    ondone: (date: string) => Promise<void>;
-    ondelete: () => Promise<void>;
+    onsave: (patch: TaskPatch & { title: string }) => Promise<void>;
+    onskip?: () => Promise<void>;
+    ondone?: (date: string) => Promise<void>;
+    ondelete?: () => Promise<void>;
   }
   let { task, today, onclose, onsave, onskip, ondone, ondelete }: Props = $props();
 
   // The sheet edits a snapshot: a background refetch must not clobber typing.
   // svelte-ignore state_referenced_locally
   const t = task;
-  let title = $state(t.title);
-  let notes = $state(t.notes ?? '');
-  let priority = $state<Priority>(t.priority);
-  let dueDate = $state(t.dueDate ?? '');
-  let repeat = $state(t.recurrence !== null);
-  let every = $state(t.recurrence?.every ?? 1);
-  let unit = $state<Unit>(t.recurrence?.unit ?? 'WEEK');
-  let mode = $state<Mode>(t.recurrence?.mode ?? 'AFTER_COMPLETION');
+  const creating = t === undefined;
+  let title = $state(t?.title ?? '');
+  let notes = $state(t?.notes ?? '');
+  let priority = $state<Priority>(t?.priority ?? 'NORMAL');
+  // svelte-ignore state_referenced_locally
+  let dueDate = $state(t ? (t.dueDate ?? '') : today);
+  let repeat = $state(creating || t.recurrence !== null);
+  let every = $state(t?.recurrence?.every ?? 1);
+  let unit = $state<Unit>(t?.recurrence?.unit ?? 'WEEK');
+  let mode = $state<Mode>(t?.recurrence?.mode ?? 'AFTER_COMPLETION');
 
   let showDone = $state(false);
   let doneDate = $state(yesterday());
@@ -37,7 +40,7 @@
   let error = $state<string | null>(null);
   let dialog: HTMLDialogElement;
 
-  const isRecurring = $derived(t.recurrence !== null);
+  const isRecurring = $derived(t?.recurrence != null);
   const everyValid = $derived(Number.isInteger(every) && every >= 1 && every <= 1000);
   const canSave = $derived(
     title.trim() !== '' && !busy && (!repeat || (everyValid && dueDate !== '')),
@@ -105,7 +108,7 @@
 >
   <form class="sheet-inner" onsubmit={save}>
     <header class="sheet-head">
-      <h2 id="sheet-title">Aufgabe bearbeiten</h2>
+      <h2 id="sheet-title">{creating ? 'Neue wiederkehrende Aufgabe' : 'Aufgabe bearbeiten'}</h2>
       <button type="button" class="icon-btn" aria-label="Schließen" onclick={onclose}>
         <Icon name="x" />
       </button>
@@ -147,10 +150,13 @@
         {/if}
       </div>
 
-      <label class="switch-row">
-        <input type="checkbox" bind:checked={repeat} onchange={toggleRepeat} />
-        <span>Wiederholung</span>
-      </label>
+      <!-- Created from "Wiederkehrend", it's always a chore (ADR-0007); one-offs come from quick-add. -->
+      {#if !creating}
+        <label class="switch-row">
+          <input type="checkbox" bind:checked={repeat} onchange={toggleRepeat} />
+          <span>Wiederholung</span>
+        </label>
+      {/if}
 
       {#if repeat}
         <div class="repeat-box">
@@ -189,9 +195,10 @@
         </div>
       {/if}
 
+      {#if !creating}
       <div class="actions">
-        {#if isRecurring}
-          <button type="button" class="btn" disabled={busy} onclick={() => run(onskip)}>
+        {#if isRecurring && onskip}
+          <button type="button" class="btn" disabled={busy} onclick={() => run(onskip!)}>
             Diesmal überspringen
           </button>
         {/if}
@@ -205,7 +212,7 @@
               type="button"
               class="btn primary"
               disabled={busy || doneDate === '' || doneDate > today}
-              onclick={() => run(() => ondone(doneDate))}
+              onclick={() => run(() => ondone!(doneDate))}
             >
               Eintragen
             </button>
@@ -215,6 +222,7 @@
           Löschen
         </button>
       </div>
+      {/if}
 
       {#if error}<p class="error" role="alert">{error}</p>{/if}
     </div>
@@ -225,7 +233,7 @@
   </form>
 </dialog>
 
-{#if confirmDelete}
+{#if confirmDelete && t}
   <ConfirmDialog
     title={`„${t.title}“ löschen?`}
     message="Die Aufgabe verschwindet aus der Liste."
@@ -233,7 +241,7 @@
     oncancel={() => (confirmDelete = false)}
     onconfirm={() => {
       confirmDelete = false;
-      run(ondelete);
+      run(ondelete!);
     }}
   />
 {/if}

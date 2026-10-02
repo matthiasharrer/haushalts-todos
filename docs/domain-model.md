@@ -70,7 +70,9 @@ The log. One row each time a task is ticked off **or skipped**.
 
 ## Derived, never stored
 
-- **Section** — *Fällig* (due ≤ today), *Demnächst* (due within 7 days),
-  *Später* (further out), *Irgendwann* (no due date).
+- **Section**: *Fällig* (due ≤ today), *Demnächst* (due within 7 days),
+  *Später* (further out), *Irgendwann* (no due date). Home shows them as
+  Fällig · Irgendwann · Demnächst · Später, and *Später* holds one-offs only.
+  Recurring chores further out live in the "Wiederkehrend" view (ADR-0007).
 - **Urgency score** — the sort key within *Fällig* (ADR-0005).
 - **Last done** — latest `DONE` completion of a task.

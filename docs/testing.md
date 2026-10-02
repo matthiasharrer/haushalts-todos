@@ -69,7 +69,7 @@ feature.
 | TC-19 | Undo on a recurring task restores the previous `dueDate` exactly; a second undo restores the one before that. Undo with no completions → 409. |
 | TC-20 | Skip a recurring task → due date moves like a completion, but `lastDone` is unchanged (a skip is not "done"). Skip on a one-off → 400. |
 | TC-21 | Two users: a task created by `matthias` is completed by `anna` → `lastDone.by` is Anna; both see the same list (shared, ADR-0003). |
-| TC-22 | `PATCH` title, notes, priority, dueDate, and recurrence (including `null` → becomes one-off) → reflected in the list; unknown id → 404. |
+| TC-22 | `PATCH` title, notes, priority, dueDate, and recurrence (including `null` → becomes one-off) → reflected in the list (a recurring task > 7 days out is read from `/api/recurring`, ADR-0007); unknown id → 404. |
 | TC-23 | `DELETE /api/tasks/:id` archives: gone from the list; completions kept in the DB. |
 | TC-24 | `GET /api/tasks` puts a HIGH task due today above a NORMAL task due today, and a NORMAL weekly task 8 days late above both. |
 | TC-25 | `lastDone` is the completion with the latest **date**, not the latest tap: Matthias completes today, then Anna logs one dated 3 days ago → `lastDone` is today by Matthias. Undo still reverts the latest *recorded* completion (Anna's). |
@@ -79,7 +79,7 @@ feature.
 | ID    | Case |
 | ----- | ---- |
 | TC-26 | **Quick-add:** type a title in the "Neue Aufgabe" field at the bottom, press Enter → it appears under **Irgendwann**; the field is cleared and keeps focus (so several can be added in a row). Blank input adds nothing. |
-| TC-27 | **Sections:** headings appear in the order Fällig · Demnächst · Später · Irgendwann, each with its count; empty sections are not shown. **Später** is collapsed by default (heading + count only) and expands on tap. With no tasks at all, an empty-state text is shown instead. |
+| TC-27 | **Sections:** headings appear in the order **Fällig · Irgendwann · Demnächst · Später** (ADR-0007), each with its count; empty sections are not shown. **Später** is collapsed by default (heading + count only) and expands on tap. With no tasks at all, an empty-state text is shown instead. |
 | TC-28 | **Tick off a recurring task** that is due today: tap its round check button → it leaves Fällig and shows up in Demnächst/Später with "zuletzt heute · Matthias". A toast "… erledigt" with **Rückgängig** appears; tapping Rückgängig puts it back in Fällig with its old due date. |
 | TC-29 | **Tick off a one-off:** it disappears from the list; Rückgängig in the toast brings it back. |
 | TC-30 | **Edit sheet:** tapping a task's text opens a sheet. Change the title, set priority **wichtig**, turn on Wiederholung "alle 2 Wochen, nach Erledigung" and save → the sheet closes and the row shows the new title, a "wichtig" marker and "alle 2 Wochen". |
@@ -89,10 +89,22 @@ feature.
 | TC-34 | **Phone layout:** no horizontal scroll at 390 px; the check button and every sheet button are at least 44×44 px; due info reads in German ("heute", "seit 3 Tagen", "morgen", "in 4 Tagen", "Fr. 17.10."). |
 | TC-35 | **Errors are visible:** if an API call fails (server returns 500), the user sees a German error message and the list isn't silently wrong; Save is disabled while the title is empty. |
 
+### Home vs. recurring view (ADR-0007)
+
+| ID    | Case | How |
+| ----- | ---- | --- |
+| TC-36 | API: a recurring task due in 20 days is **not** in any section of `GET /api/tasks`; a one-off due in 20 days **is** in `spaeter`. `GET /api/recurring` lists all active recurring tasks sorted by due date (then id), including that one; archived and one-off tasks are not in it. | scripted (API) |
+| TC-37 | A bottom tab bar shows **Aufgaben** and **Wiederkehrend**; switching changes the view and the URL hash; reloading on `#/wiederkehrend` stays there. The quick-add bar is only on Aufgaben. | scripted |
+| TC-38 | **Wiederkehrend** lists every recurring chore with next date, rhythm and "zuletzt …"; a chore due in 20 days is shown here but not on Aufgaben. With no recurring chores, an empty-state text and the "+" button are shown. | scripted |
+| TC-39 | "+" in Wiederkehrend opens the sheet with the rhythm fields shown directly (**no** Wiederholung switch, so you can't make a one-off here); defaults 1 Woche, nach Erledigung, due today; saving "Filter wechseln, alle 3 Monate, nach Erledigung, fällig heute" → it appears in Wiederkehrend **and** under Fällig on Aufgaben. | scripted |
+| TC-40 | **Convert:** a one-off added via quick-add, turned recurring ("alle 1 Woche") in the sheet on Aufgaben → it appears in Wiederkehrend. Ticking a chore off in Wiederkehrend works the same as on Aufgaben (toast with Rückgängig). | scripted |
+| TC-41 | **Demnächst** is visually quieter than Fällig (smaller or muted heading/text) but its check buttons still work and keep the 44 px target. | scripted (target size) + eyes |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-02 | ADR-0007 (home vs. Wiederkehrend): TC-27 amended, TC-36…41 new, full suite | **e2e 33/33** (21.0 s), `svelte-check` 0/0, lead run after review (lead hid the Wiederholung switch in create mode; TC-39 amended). Screenshots of both views, the create sheet and dark mode reviewed by the lead. TC-22 now reads far recurring tasks from `/api/recurring`. |
 | 2026-10-02 | Task list UI: TC-26…35 (new), full suite | **e2e 27/27** (18.7 s), `svelte-check` 0/0, lead run. Lead browser check at 390×844 via playwright-cli (tick off → moves to Demnächst with "zuletzt heute", toast with Rückgängig) plus the implementer's light/dark/sheet screenshots. TC-05 no longer asserts the empty-list text (the e2e DB is shared across specs). |
 | 2026-10-02 | Task core API: TC-06…13 (unit), TC-14…25 (e2e), full suite | **unit 12/12, e2e 17/17** (lead run). TC-25 added by the lead in review (`lastDone` ordering fix). The e2e helpers read `.e2e/e2e.db` read-only via better-sqlite3 for completion rows the API doesn't expose (TC-16, TC-23). |
 | 2026-10-02 | Skeleton: TC-01…05, full suite | **5/5 pass** (6.1 s), lead run before the first commit |

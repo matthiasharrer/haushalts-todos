@@ -74,7 +74,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const getMe = () => request<Me>('GET', '/api/me');
 export const listTasks = () => request<TaskList>('GET', '/api/tasks');
-export const createTask = (title: string) => request<Task>('POST', '/api/tasks', { title });
+export interface RecurringList {
+  today: string;
+  tasks: Task[];
+}
+
+export const listRecurring = () => request<RecurringList>('GET', '/api/recurring');
+export const createTask = (input: string | (TaskPatch & { title: string })) =>
+  request<Task>('POST', '/api/tasks', typeof input === 'string' ? { title: input } : input);
 export const updateTask = (id: number, patch: TaskPatch) =>
   request<Task>('PATCH', `/api/tasks/${id}`, patch);
 export const completeTask = (id: number, date?: string) =>
@@ -82,3 +89,6 @@ export const completeTask = (id: number, date?: string) =>
 export const skipTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/skip`);
 export const undoTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/undo`);
 export const deleteTask = (id: number) => request<void>('DELETE', `/api/tasks/${id}`);
+
+export const messageOf = (e: unknown) =>
+  e instanceof ApiError ? e.message : 'Das hat nicht geklappt. Bitte versuche es noch einmal.';

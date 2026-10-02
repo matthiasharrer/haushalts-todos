@@ -1,6 +1,6 @@
 # 0005. Sort due tasks by urgency, not just by date
 
-- **Status:** Accepted (the constants are a starting point, to be tuned after real use)
+- **Status:** Accepted (the constants are a starting point, to be tuned after real use). Section order and "Später" amended by [ADR-0007](0007-home-list-and-recurring-view.md).
 - **Date:** 2026-10-02
 
 ## Context

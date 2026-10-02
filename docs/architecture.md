@@ -58,7 +58,8 @@ Endpoints (all behind identity):
 
 | Method | Path | Does |
 | ------ | ---- | ---- |
-| GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs |
+| GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs, and recurring tasks from `spaeter` (ADR-0007) |
+| GET    | `/api/recurring` | `{ today, tasks }`: all active recurring tasks by `dueDate`, then id. The DTO's `section` is still the raw derived one (a far chore says `spaeter`). |
 | POST   | `/api/tasks` | create; recurring without a date → due today |
 | PATCH  | `/api/tasks/:id` | partial; `recurrence: null` → one-off |
 | POST   | `/api/tasks/:id/complete` | `{date?}` (≤ today) → Completion DONE + move date / finish one-off |
@@ -75,7 +76,7 @@ as 0 days late) and null for undated ones.
 Svelte 5 SPA, no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
 `app.css` with CSS custom properties. German UI, phone viewport first.
 
-One screen (`routes/Home.svelte`): the four sections, a fixed quick-add bar at
+Two views, switched by URL hash in `App.svelte` (no router; no hash = Aufgaben), with a bottom tab bar: **Aufgaben** (`routes/Home.svelte`, `#/`) and **Wiederkehrend** (`routes/Recurring.svelte`, `#/wiederkehrend`, from `GET /api/recurring`), see ADR-0007. Toast state lives in `lib/store.svelte.ts` (one `Toast` mounted in `App`, survives tab switches; a `version` counter makes the mounted view refetch). Home has the four sections (Fällig · Irgendwann · Demnächst · Später), a fixed quick-add bar at
 the bottom, one toast slot (success with Rückgängig, or a red error), and the
 edit sheet (`lib/TaskSheet.svelte`, native `<dialog>`). Rows are
 `lib/TaskRow.svelte`. Every mutation refetches `GET /api/tasks`, failures

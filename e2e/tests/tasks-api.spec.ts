@@ -178,7 +178,9 @@ test('TC-22 PATCH fields, recurrence null -> one-off; unknown id -> 404', async 
     data: { title: 'neu', notes: 'Notiz', priority: 'HIGH', dueDate: next },
   });
   expect(res.status()).toBe(200);
-  expect((await find(request, t.id)).task).toMatchObject({
+  // ADR-0007: a recurring task 20 days out is no longer on home, so look it up in /api/recurring
+  const recurring = await (await request.get('/api/recurring', { headers: MATTHIAS })).json();
+  expect(recurring.tasks.find((x: any) => x.id === t.id)).toMatchObject({
     title: 'neu',
     notes: 'Notiz',
     priority: 'HIGH',
@@ -255,4 +257,55 @@ test('TC-25 lastDone is the latest day it counts for, not the latest tap', async
   // Undo still reverts the latest *recorded* one (Anna's), leaving Matthias's.
   expect((await post(request, `/api/tasks/${t.id}/undo`)).status()).toBe(200);
   expect((await find(request, t.id)).task.lastDone.by.displayName).toBe('Matthias');
+});
+
+test('TC-36 recurring far out is not on home; /api/recurring lists active recurring by due date', async ({ request }) => {
+  const t = today();
+  const far = await create(request, {
+    title: uniq('Fern wiederkehrend'),
+    dueDate: addDays(t, 20),
+    recurrence: { every: 1, unit: 'MONTH' },
+  });
+  const soon = await create(request, {
+    title: uniq('Bald wiederkehrend'),
+    dueDate: addDays(t, 3),
+    recurrence: { every: 1, unit: 'WEEK' },
+  });
+  const sameDay = await create(request, {
+    title: uniq('Gleicher Tag'),
+    dueDate: addDays(t, 20),
+    recurrence: { every: 2, unit: 'WEEK' },
+  });
+  const oneOff = await create(request, { title: uniq('Fern einmalig'), dueDate: addDays(t, 20) });
+  const archived = await create(request, {
+    title: uniq('Archiviert wiederkehrend'),
+    recurrence: { every: 1, unit: 'DAY' },
+  });
+  expect((await request.delete(`/api/tasks/${archived.id}`, { headers: MATTHIAS })).status()).toBe(204);
+
+  // home: far recurring in no section; far one-off in spaeter; near recurring in demnaechst
+  expect((await find(request, far.id)).section).toBeNull();
+  expect((await find(request, sameDay.id)).section).toBeNull();
+  expect((await find(request, oneOff.id)).section).toBe('spaeter');
+  expect((await find(request, soon.id)).section).toBe('demnaechst');
+
+  const res = await request.get('/api/recurring', { headers: MATTHIAS });
+  expect(res.status()).toBe(200);
+  const body = await res.json();
+  expect(body.today).toBe(t);
+  const ids = body.tasks.map((x: any) => x.id);
+  expect(ids).toEqual(expect.arrayContaining([far.id, soon.id, sameDay.id]));
+  expect(ids).not.toContain(oneOff.id);
+  expect(ids).not.toContain(archived.id);
+  expect(body.tasks.every((x: any) => x.recurrence !== null)).toBe(true);
+  // sorted by dueDate, then id
+  const keys = body.tasks.map((x: any) => [x.dueDate, x.id]);
+  const sorted = [...keys].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1]));
+  expect(keys).toEqual(sorted);
+  expect(ids.indexOf(far.id)).toBeLessThan(ids.indexOf(sameDay.id)); // same date: lower id first
+  expect(ids.indexOf(soon.id)).toBeLessThan(ids.indexOf(far.id));
+
+  // identity is required
+  const anon = await request.get('/api/recurring');
+  expect(anon.status()).toBe(401);
 });

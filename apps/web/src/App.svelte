@@ -1,16 +1,38 @@
 <script lang="ts">
   import { getMe, type Me } from './lib/api';
+  import Icon from './lib/Icon.svelte';
+  import Toast from './lib/Toast.svelte';
   import Home from './routes/Home.svelte';
+  import Recurring from './routes/Recurring.svelte';
 
   let me = $state<Me | null>(null);
   getMe().then(
     (m) => (me = m),
     () => {},
   );
+
+  // Two views, in the URL hash so reload and browser-back keep working.
+  const viewOf = (hash: string) => (hash === '#/wiederkehrend' ? 'recurring' : 'home');
+  let view = $state<'home' | 'recurring'>(viewOf(location.hash));
 </script>
 
-<header class="app-bar">
-  <h1>Haushalt</h1>
-  {#if me}<span class="greeting">Hallo, {me.displayName}</span>{/if}
-</header>
-<main class="page"><Home /></main>
+<svelte:window onhashchange={() => (view = viewOf(location.hash))} />
+
+<div class="app" class:with-add={view === 'home'}>
+  <header class="app-bar">
+    <h1>Haushalt</h1>
+    {#if me}<span class="greeting">Hallo, {me.displayName}</span>{/if}
+  </header>
+  <main class="page">
+    {#if view === 'home'}<Home />{:else}<Recurring />{/if}
+  </main>
+  <Toast />
+  <nav class="tab-bar" aria-label="Ansicht">
+    <a href="#/" aria-current={view === 'home' ? 'page' : undefined}>
+      <Icon name="list" /><span>Aufgaben</span>
+    </a>
+    <a href="#/wiederkehrend" aria-current={view === 'recurring' ? 'page' : undefined}>
+      <Icon name="repeat" /><span>Wiederkehrend</span>
+    </a>
+  </nav>
+</div>

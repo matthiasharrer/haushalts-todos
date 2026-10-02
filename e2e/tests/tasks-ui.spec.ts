@@ -66,7 +66,7 @@ test('TC-27 Abschnitte: Reihenfolge, Zähler, Später eingeklappt, Leerzustand',
     els.map((e) => e.textContent ?? ''),
   );
   const names = headings.map((h) => h.replace(/\s*\d+\s*$/, '').trim());
-  expect(names).toEqual(['Fällig', 'Demnächst', 'Später', 'Irgendwann']);
+  expect(names).toEqual(['Fällig', 'Irgendwann', 'Demnächst', 'Später']);
 
   // each heading shows its count (for Später: the toggle's count; expand to compare)
   for (const name of ['Fällig', 'Demnächst', 'Irgendwann']) {

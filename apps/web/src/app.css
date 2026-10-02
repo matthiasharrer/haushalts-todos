@@ -11,7 +11,8 @@
   --toast-bg: light-dark(#26302d, #e8ecea);
   --toast-fg: light-dark(#f2f5f3, #1c2321);
   --scrim: rgb(0 0 0 / 0.45);
-  --bar-h: 72px;
+  --tab-h: 56px;
+  --add-h: 0px; /* height of the quick-add bar when shown (see .with-add) */
   --border: light-dark(#dfe3e0, #333a3b);
   --radius: 12px;
   --tap: 48px;
@@ -72,8 +73,8 @@ body {
 }
 
 .page {
-  /* room for the fixed quick-add bar (+ toast above it) */
-  padding-bottom: calc(var(--bar-h) + 24px + env(safe-area-inset-bottom));
+  /* room for the fixed tab bar, the quick-add bar above it and the toast */
+  padding-bottom: calc(var(--tab-h) + var(--add-h) + 24px + env(safe-area-inset-bottom));
 }
 
 .empty {
@@ -304,12 +305,12 @@ textarea {
 /* ---- quick add ---- */
 .quick-add {
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto 0 calc(var(--tab-h) + env(safe-area-inset-bottom)) 0;
   display: flex;
   gap: 0.5rem;
   max-width: 40rem;
   margin: 0 auto;
-  padding: 0.5rem var(--gutter) calc(0.5rem + env(safe-area-inset-bottom));
+  padding: 0.5rem var(--gutter);
   background: var(--bg);
   border-top: 1px solid var(--border);
 }
@@ -340,7 +341,7 @@ textarea {
   position: fixed;
   left: var(--gutter);
   right: var(--gutter);
-  bottom: calc(var(--bar-h) + 12px + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-h) + var(--add-h) + 12px + env(safe-area-inset-bottom));
   max-width: calc(40rem - 2 * var(--gutter));
   margin: 0 auto;
   display: flex;
@@ -587,4 +588,58 @@ dialog.confirm p {
 }
 .confirm-actions .btn {
   flex: 1;
+}
+
+/* ---- tab bar (bottom navigation) ---- */
+.with-add {
+  --add-h: 65px; /* 48px input + 2 * 8px padding + 1px border */
+}
+.tab-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.tab-bar a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+.tab-bar a[aria-current='page'] {
+  color: var(--accent-text);
+  font-weight: 700;
+  box-shadow: inset 0 3px 0 var(--accent-text);
+}
+
+/* ---- quieter "Demnächst" (ADR-0007) ---- */
+.section.quiet h2 {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+.section.quiet .title {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.section.quiet .tasks {
+  background: transparent;
+}
+
+/* ---- recurring view ---- */
+.new-recurring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
   import {
-    ApiError,
     completeTask,
     createTask,
     deleteTask,
     listTasks,
+    messageOf,
     skipTask,
     undoTask,
     updateTask,
@@ -14,14 +14,15 @@
     type TaskPatch,
   } from '../lib/api';
   import Icon from '../lib/Icon.svelte';
+  import { shared, showToast } from '../lib/store.svelte';
   import TaskRow from '../lib/TaskRow.svelte';
   import TaskSheet from '../lib/TaskSheet.svelte';
 
   const SECTIONS: { key: SectionName; label: string }[] = [
     { key: 'faellig', label: 'Fällig' },
+    { key: 'irgendwann', label: 'Irgendwann' },
     { key: 'demnaechst', label: 'Demnächst' },
     { key: 'spaeter', label: 'Später' },
-    { key: 'irgendwann', label: 'Irgendwann' },
   ];
 
   let list = $state<TaskList | null>(null);
@@ -31,23 +32,9 @@
   let newTitle = $state('');
   let addInput: HTMLInputElement;
 
-  type Toast = { id: number; text: string; undoId?: number; error?: boolean };
-  let toast = $state<Toast | null>(null);
-  let toastSeq = 0;
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-
   const total = $derived(
     list ? SECTIONS.reduce((n, s) => n + list!.sections[s.key].length, 0) : 0,
   );
-
-  function showToast(text: string, opts: { undoId?: number; error?: boolean } = {}) {
-    clearTimeout(toastTimer);
-    toast = { id: ++toastSeq, text, ...opts };
-    toastTimer = setTimeout(() => (toast = null), 6000);
-  }
-
-  const messageOf = (e: unknown) =>
-    e instanceof ApiError ? e.message : 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
 
   async function refresh() {
     try {
@@ -77,21 +64,17 @@
     }
   }
 
-  refresh();
+  // initial load, and again whenever something changed elsewhere (e.g. toast undo)
+  $effect(() => {
+    void shared.version;
+    refresh();
+  });
 
   const complete = (t: Task) =>
     mutateWithToast(
       () => completeTask(t.id),
-      () => showToast(`„${t.title}“ erledigt`, { undoId: t.id }),
+      () => showToast(`„${t.title}“ erledigt`, { undo: () => undoTask(t.id) }),
     );
-
-  async function undo() {
-    const id = toast?.undoId;
-    if (id === undefined) return;
-    toast = null;
-    clearTimeout(toastTimer);
-    await mutateWithToast(() => undoTask(id));
-  }
 
   async function quickAdd(e: Event) {
     e.preventDefault();
@@ -115,12 +98,12 @@
     skip: (t: Task) => async () => {
       await mutate(() => skipTask(t.id));
       editing = null;
-      showToast(`„${t.title}“ übersprungen`, { undoId: t.id });
+      showToast(`„${t.title}“ übersprungen`, { undo: () => undoTask(t.id) });
     },
     done: (t: Task) => async (date: string) => {
       await mutate(() => completeTask(t.id, date));
       editing = null;
-      showToast(`„${t.title}“ erledigt`, { undoId: t.id });
+      showToast(`„${t.title}“ erledigt`, { undo: () => undoTask(t.id) });
     },
     del: (t: Task) => async () => {
       await mutate(() => deleteTask(t.id));
@@ -144,7 +127,7 @@
   {#each SECTIONS as s (s.key)}
     {@const tasks = list.sections[s.key]}
     {#if tasks.length > 0}
-      <section class="section" aria-label={s.label}>
+      <section class="section" class:quiet={s.key === 'demnaechst'} aria-label={s.label}>
         {#if s.key === 'spaeter'}
           <h2>
             <button
@@ -175,17 +158,6 @@
       </section>
     {/if}
   {/each}
-{/if}
-
-{#if toast}
-  {#key toast.id}
-    <div class="toast" class:toast-error={toast.error} role={toast.error ? 'alert' : 'status'}>
-      <span class="toast-text">{toast.text}</span>
-      {#if toast.undoId !== undefined}
-        <button type="button" class="toast-action" onclick={undo}>Rückgängig</button>
-      {/if}
-    </div>
-  {/key}
 {/if}
 
 <form class="quick-add" onsubmit={quickAdd}>

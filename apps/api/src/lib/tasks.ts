@@ -164,10 +164,22 @@ export async function listTasks(now: Date = new Date()) {
     sections: {
       faellig: pick('faellig'),
       demnaechst: pick('demnaechst'),
-      spaeter: pick('spaeter'),
+      // ADR-0007: Später is one-offs only; recurring chores far out live in /api/recurring.
+      spaeter: pick('spaeter').filter((t) => t.recurrence === null),
       irgendwann: pick('irgendwann'),
     },
   };
+}
+
+/** ADR-0007: every active recurring task, by next due date (then id). */
+export async function listRecurring(now: Date = new Date()) {
+  const today = todayBerlin(now);
+  const rows = await prisma.task.findMany({
+    where: { archivedAt: null, recurrenceEvery: { not: null } },
+    include: taskInclude,
+    orderBy: [{ dueDate: 'asc' }, { id: 'asc' }],
+  });
+  return { today, tasks: rows.map((r) => toDto(r, today)) };
 }
 
 export async function createTask(input: CreateTaskInput, actor: Actor): Promise<TaskDto> {
