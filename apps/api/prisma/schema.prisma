@@ -25,4 +25,67 @@ model User {
   email       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  tasks       Task[]
+  completions Completion[]
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum RecurrenceUnit {
+  DAY
+  WEEK
+  MONTH
+}
+
+enum RecurrenceMode {
+  AFTER_COMPLETION
+  FIXED
+}
+
+enum CompletionKind {
+  DONE
+  SKIPPED
+}
+
+/// One row per task, recurring or not (ADR-0004). dueDate is a calendar date
+/// "YYYY-MM-DD" (Europe/Berlin). recurrence* fields are all-null or all-set.
+model Task {
+  id              Int             @id @default(autoincrement())
+  title           String
+  notes           String?
+  priority        Priority        @default(NORMAL)
+  dueDate         String?
+  recurrenceEvery Int?
+  recurrenceUnit  RecurrenceUnit?
+  recurrenceMode  RecurrenceMode?
+  doneAt          DateTime?
+  archivedAt      DateTime?
+  createdById     Int
+  createdBy       User            @relation(fields: [createdById], references: [id])
+  createdVia      String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  completions     Completion[]
+
+  @@index([archivedAt, doneAt, dueDate])
+}
+
+/// The log: one row per tick-off or skip. Undo deletes the latest one.
+model Completion {
+  id            Int            @id @default(autoincrement())
+  taskId        Int
+  task          Task           @relation(fields: [taskId], references: [id])
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id])
+  via           String
+  kind          CompletionKind
+  at            DateTime       @default(now())
+  date          String
+  dueDateBefore String?
+
+  @@index([taskId, at])
 }

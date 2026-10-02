@@ -23,6 +23,12 @@
   there from day one (Completion log). Handle with care: it's a household, not a
   KPI dashboard.
 - **Seasonal chores** — "only March–October" (garden, gutters).
+- **Urgency details to revisit after real use** (ADR-0005): not-yet-due
+  tasks score just their weight (overdue clamped at 0); MONTH counts as 30
+  days for the scale; monthly FIXED tasks drift after clamping (31 Jan → 28 Feb
+  → 28 Mar), as ADR-0004 specifies.
+- **Undo after an edit:** undo restores `dueDateBefore` even if the due date
+  was edited by hand in between. Rare; revisit if it ever bites.
 - **Promote stale "Irgendwann" tasks** into view if they rot (ADR-0005).
 - **Link to rezepte?** e.g. "Kühlschrank auswischen" — probably not; noted so
   nobody re-derives it.

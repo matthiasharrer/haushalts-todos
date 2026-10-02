@@ -12,7 +12,8 @@
     "db:generate": "DATABASE_URL=file:generate-placeholder.db prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test:unit": "tsx --test src/lib/*.test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
@@ -20,7 +21,8 @@
     "@prisma/client": "^7.10.0",
     "dotenv": "^17.4.2",
     "hono": "^4.13.8",
-    "prisma": "^7.10.0"
+    "prisma": "^7.10.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

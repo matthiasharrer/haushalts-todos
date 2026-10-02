@@ -1,7 +1,7 @@
 # Architecture
 
 _The current picture. The reasoning is in `decisions/`. Last updated:
-2026-10-02 (walking skeleton)._
+2026-10-02 (task core API)._
 
 ## Overview
 
@@ -42,12 +42,37 @@ with fakes (`DEV_REMOTE_USER` etc.; an empty value removes the header).
 Prisma 7, `prisma-client` generator into `apps/api/src/generated/prisma`
 (gitignored), better-sqlite3 driver adapter, WAL on at runtime (`src/db.ts`).
 
-Current schema: `User` only. The target model (Task, Completion) is in
-`domain-model.md`.
+Schema: `User`, `Task`, `Completion` (as in `domain-model.md`), with Prisma
+enums for priority, unit, mode and completion kind. Dates are `YYYY-MM-DD`
+strings (Europe/Berlin); `doneAt`/`archivedAt`/`Completion.at` are timestamps.
+
+## Task logic: three layers
+
+| Layer | File | Notes |
+| ----- | ---- | ----- |
+| Pure domain | `lib/dates.ts`, `lib/recurrence.ts`, `lib/urgency.ts` | No Prisma. `nextDueDate` (ADR-0004), sections and scores (ADR-0005). Unit-tested (TC-06…13). |
+| Service | `lib/tasks.ts` | zod schemas, every operation, and transactions. Takes an `Actor {userId, via}`, so web and (later) MCP share one path. Throws `TaskError(status)`. **Every write goes through here**, because the invariant "a recurring task always has a `dueDate`" lives here. |
+| HTTP | `routes/tasks.ts` | Thin: parses, calls the service, maps `TaskError`. |
+
+Endpoints (all behind identity):
+
+| Method | Path | Does |
+| ------ | ---- | ---- |
+| GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs |
+| POST   | `/api/tasks` | create; recurring without a date → due today |
+| PATCH  | `/api/tasks/:id` | partial; `recurrence: null` → one-off |
+| POST   | `/api/tasks/:id/complete` | `{date?}` (≤ today) → Completion DONE + move date / finish one-off |
+| POST   | `/api/tasks/:id/skip` | recurring only → Completion SKIPPED + move date |
+| POST   | `/api/tasks/:id/undo` | delete latest *recorded* completion, restore `dueDateBefore` / clear `doneAt`; 409 if none |
+| DELETE | `/api/tasks/:id` | archive (204), completions kept |
+
+`lastDone` in the DTO = the DONE completion with the latest `date` (skips
+don't count). `urgency` is a number for every dated task (not-yet-due counts
+as 0 days late) and null for undated ones.
 
 ## Frontend
 
-Svelte 5 SPA, no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
+Svelte 5 SPA (no task UI yet; roadmap item 3), no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
 `app.css` with CSS custom properties. German UI, phone viewport first.
 
 ## Build and deploy

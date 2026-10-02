@@ -5,20 +5,13 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-02 (bootstrap: vision agreed, skeleton being built)_
+_Last updated: 2026-10-02 (skeleton and task core API shipped; next: the task list UI)_
 
 ## Next — MVP: usable on both phones
 
 The goal of the MVP is to **use it for real** for a few weeks before building
 more. Order matters: deploy as soon as the list is usable, add MCP after.
 
-- [ ] **1. Walking skeleton** — monorepo, Hono + Prisma/SQLite, Svelte SPA,
-      Authelia identity → `User` table (ADR-0003), `scripts/app.sh`, Dockerfile,
-      CI, e2e harness. *In progress.*
-- [ ] **2. Task core (API)** — `Task` + `Completion` schema (domain-model.md);
-      pure, unit-tested `nextDueDate` (ADR-0004) and `section`/`urgency`
-      (ADR-0005); REST endpoints: list (sectioned + sorted), create, edit,
-      complete (with optional date), skip, undo latest, archive.
 - [ ] **3. Task list (web)** — the main screen: Fällig / Demnächst / Später
       (collapsed) / Irgendwann; quick-add (title only → one-off, no date);
       tick off with an undo toast; edit sheet for notes, priority, due date,

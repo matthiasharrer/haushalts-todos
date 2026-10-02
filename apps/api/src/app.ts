@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { identity, type AppEnv } from './identity.js';
 import { me } from './routes/me.js';
+import { tasks } from './routes/tasks.js';
 import { mountStatic } from './static.js';
 
 export const app = new Hono<AppEnv>();
@@ -11,6 +12,7 @@ app.get('/api/health', (c) =>
 
 app.use('/api/*', identity);
 app.route('/api/me', me);
+app.route('/api/tasks', tasks);
 
 app.onError((err, c) => {
   console.error(err);

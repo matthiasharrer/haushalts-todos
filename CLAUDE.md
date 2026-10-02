@@ -104,6 +104,8 @@ scripts/app.sh logs [api|web]
   your own shell.
 
 First time after a clone: `npm install && npm run db:migrate && scripts/app.sh start`.
+After pulling a schema change: `npm run db:generate` (the client in
+`apps/api/src/generated/` is gitignored), then `npm run db:migrate`.
 
 **You cannot build the container image here** (unprivileged workspace, BuildKit
 fails). CI builds it. To check production behaviour, run the compiled server:
