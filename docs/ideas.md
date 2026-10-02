@@ -17,6 +17,32 @@
   enough to need it.
 - **Shopping list.** Stays in Microsoft To Do (Einkaufsliste MCP) for now.
 
+## Matthias's ideas, 2026-10-02 (not thought through yet; decide after real use)
+
+- **Follow-up tasks** ("Wäsche waschen" → "Wäsche aufhängen"). Cheap version:
+  a one-off can *wait for* another task (`waitsForId`, optional offset "3 Tage
+  danach"); hidden or greyed ("wartet auf …") until the predecessor is done,
+  then it gets its due date. **Expensive** if the predecessor is recurring:
+  every completion would have to spawn a new follow-up, i.e. generated
+  instances, the thing ADR-0004 avoids. Lead's recommendation: one-off chains only.
+- **When a task *can* be done** (e.g. Wertstoffhof must be open). Three levels:
+  1. "frühestens ab" date: hidden (or under Später) until then; also covers
+     seasonal chores. Very cheap.
+  2. Weekday mask ("nur Mi/Fr/Sa"): ranks up and shows "heute möglich" only
+     on those days. Cheap; probably the useful core of the idea.
+  3. Real opening hours with times: a lot of logic for little gain. Lead
+     recommends against.
+- **Calendar subscription (iCal feed)** of due tasks as all-day events, e.g. in
+  Google Calendar on the phone. Technically simple, but Google refreshes
+  subscribed calendars only every ~12–24 h (ticked-off tasks linger a day),
+  and the feed must bypass Authelia with a secret token in the URL (like
+  rezepte's `/s` share links). Matthias himself unsure it helps; MCP already
+  answers "what's due". Lead's recommendation: park.
+- **Fixed interval vs. "after completion"**: already exists per chore
+  ("fester Rhythmus" / "nach Erledigung" in the sheet, ADR-0004). If
+  Matthias didn't notice it, it may be too hidden; revisit the sheet layout
+  or the default after use.
+
 ## Maybe later
 
 - **Who does how much** — completion stats per person over time. The data is
