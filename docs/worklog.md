@@ -3,6 +3,35 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-02 (later) — MVP built in one session, `v0.1.0` tagged
+
+Same session as the bootstrap. Shipped in order, each reviewed by the lead
+and run green before its commit: task core API (ADR-0004/0005), task list UI,
+Matthias's first feedback as ADR-0007 (home = actionable list; recurring
+chores in their own "Wiederkehrend" tab), the MCP server (ADR-0006, OAuth only,
+user-bound tokens), a centered loading spinner. Tagged **`v0.1.0`** for the
+first deploy. Final suite: e2e 46/46, unit 25/25.
+
+- **Next is roadmap item 4, the first deploy. It's Matthias's side** (checklist in
+  roadmap.md): deployment (Recreate, 1 replica), PVC `/data`, secret
+  `MCP_TOKEN`, ingress with Authelia except `/mcp` + `/.well-known/`, and an
+  Authelia account and rule for his wife (probably user `tina`, he's not sure;
+  the code doesn't care, users are created on first sight). After deploy:
+  connect Claude once per person and run TC-44/45 against the real ingress.
+- **Dev setup:** Haushalt's dev web server runs on **:5173** (Matthias's
+  preference; `WEB_PORT=5173 scripts/app.sh restart`), and rezepte is stopped.
+  `apps/api/.env` (gitignored) has a random `MCP_TOKEN`.
+- **Lost data, my fault:** a blanket `delete from Task` in a cleanup brief deleted
+  Matthias's own trial task "test". The rule is now in CLAUDE.md: clean up only
+  what you seeded.
+- Matthias's unrefined ideas (follow-up tasks, "can be done when" windows,
+  iCal feed) are in ideas.md with the lead's take. **The plan is to use it for a few
+  weeks first.**
+- Browser checks: `npx playwright-cli` (skill + config committed); the
+  Playwright MCP is gone from `~/.claude.json`. To catch a loading state,
+  delay the API with `run-code` + `page.route` (≥ 10 s, since each CLI call is
+  a separate step).
+
 ## 2026-10-02 — Bootstrap
 
 Matthias and the lead agreed the vision (`vision.md`): shared household
