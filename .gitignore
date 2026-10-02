@@ -28,3 +28,8 @@ data/
 .e2e/
 playwright-report/
 test-results/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+
+# playwright-cli session output (snapshots, screenshots, console logs)
+.playwright-cli/

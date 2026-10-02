@@ -18,7 +18,10 @@ reviewed it.
 - **Playwright MCP was broken**: its `--executable-path` had vanished from
   `~/.claude.json` (workspace rebuild?). Restored it to
   `/opt/playwright-browsers/chromium-1228/chrome-linux64/chrome`; it needs an
-  MCP reconnect to take effect. Documented in CLAUDE.md.
+  MCP reconnect to take effect. Later the same session, on Matthias's call,
+  browser checks moved to **`playwright-cli`** (devDependency + committed skill
+  + `.playwright/cli.config.json`); the MCP is gone. `install --skills` hangs
+  (browser download), so the skill is copied by `npm run skills:sync`.
 - `docker-entrypoint.sh` refers to a failed-migration runbook generically.
   Port rezepte's `runbook-failed-migration.md` before the first real
   migration hits production.

@@ -116,23 +116,29 @@ PORT=3100 WEB_DIST=$PWD/apps/web/dist DATABASE_URL="file:$PWD/apps/api/prisma/de
 
 ## Verifying changes
 
-**Mobile viewport first**, in a real browser via the Playwright MCP
-(`mcp__playwright__browser_*`):
+**Mobile viewport first**, in a real browser via **`playwright-cli`** (the
+`playwright-cli` skill in `.claude/skills/`; there is no Playwright MCP). It's
+a devDependency, so it survives workspace rebuilds. Run it through `npx`:
 
+```bash
+npx playwright-cli open http://127.0.0.1:5174/   # ← 127.0.0.1, not localhost (IPv6 trap)
+npx playwright-cli snapshot                       # refs (e5…) for click/fill
+npx playwright-cli screenshot                     # then Read the PNG
+npx playwright-cli console
+npx playwright-cli close                          # always, when done
 ```
-browser_resize 390 844
-browser_navigate http://127.0.0.1:5174/     ← 127.0.0.1, not localhost (IPv6 trap)
-browser_snapshot / browser_take_screenshot / browser_console_messages
-```
 
-Benign noise on local access: HMR websocket errors to `:443`.
-
-**Playwright MCP gotcha:** the image has no branded Chrome. The MCP must be
-started with `--executable-path
-/opt/playwright-browsers/chromium-1228/chrome-linux64/chrome` (global
-`mcpServers.playwright.args` in `~/.claude.json`). If it fails with "Chromium
-distribution 'chrome' is not found", that setting is gone again (workspace
-rebuild). Restore it and reconnect the MCP (`/mcp`).
+- `.playwright/cli.config.json` (committed) sets the phone viewport (390×844,
+  touch, `de-DE`) and points at the image's Chromium
+  (`/opt/playwright-browsers/chromium-1228/...`); there's no branded Chrome
+  here. If the image's Chromium revision changes, update that path.
+- Output (snapshots, screenshots, logs) goes to `.playwright-cli/`, which is
+  gitignored.
+- One browser session is shared. Subagents that need their own use
+  `-s=<name>` and never drive the default session at the same time.
+- After bumping `@playwright/cli`, run `npm run skills:sync` to refresh the
+  skill. (`playwright-cli install --skills` hangs here, trying to fetch a browser.)
+- Benign noise on local access: HMR websocket errors to `:443`.
 
 **Scripted tests:**
 

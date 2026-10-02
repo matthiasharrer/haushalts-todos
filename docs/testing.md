@@ -22,7 +22,7 @@ Every change passes three gates:
    wherever deterministic, and they pass.
 2. **Full suite.** `npm run e2e` is green before every commit that touches code.
 3. **Eyes on it.** UI changes get looked at in a real browser on a 390×844
-   viewport (Playwright MCP) before desktop.
+   viewport (`npx playwright-cli`) before desktop.
 
 The case author is the lead. The runner is never the agent that implemented the
 feature.
