@@ -49,7 +49,7 @@ export class ApiError extends Error {
 
 function germanMessage(status: number): string {
   if (status === 0) return 'Keine Verbindung zum Server.';
-  if (status === 404) return 'Die Aufgabe gibt es nicht mehr.';
+  if (status === 404) return 'Das gibt es nicht mehr.';
   if (status === 409) return 'Das ist so nicht mehr möglich.';
   if (status === 400) return 'Die Eingabe ist ungültig.';
   if (status === 401) return 'Nicht angemeldet.';
@@ -89,6 +89,23 @@ export const completeTask = (id: number, date?: string) =>
 export const skipTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/skip`);
 export const undoTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/undo`);
 export const deleteTask = (id: number) => request<void>('DELETE', `/api/tasks/${id}`);
+
+export interface McpConfig {
+  configured: boolean;
+  endpoint: string;
+}
+export interface McpClient {
+  id: number;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export const getMcpConfig = () => request<McpConfig>('GET', '/api/mcp/config');
+export const listMcpClients = () => request<McpClient[]>('GET', '/api/mcp/clients');
+export const renameMcpClient = (id: number, name: string) =>
+  request<McpClient>('PATCH', `/api/mcp/clients/${id}`, { name });
+export const revokeMcpClient = (id: number) => request<void>('DELETE', `/api/mcp/clients/${id}`);
 
 export const messageOf = (e: unknown) =>
   e instanceof ApiError ? e.message : 'Das hat nicht geklappt. Bitte versuche es noch einmal.';

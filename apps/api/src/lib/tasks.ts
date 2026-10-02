@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { isValidDate, todayBerlin } from './dates.js';
+import { foldText } from './text.js';
 import { nextDueDate } from './recurrence.js';
 import { sectionOf, sortTasks, urgencyScore, type Section } from './urgency.js';
 
@@ -305,4 +306,75 @@ export async function archiveTask(id: number): Promise<void> {
     await activeTask(tx, id);
     await tx.task.update({ where: { id }, data: { archivedAt: new Date() } });
   });
+}
+
+// ---- search and history (MCP; usable by the web later) -----------------------
+
+/**
+ * Active tasks (not archived, not a finished one-off: the same set as the home
+ * list) whose title or notes contain `query` as a case- and umlaut-insensitive
+ * substring. Sorted like the home list's sections would (urgent first), then
+ * by id. An empty query is a 400.
+ */
+export async function searchTasks(query: string, now: Date = new Date()): Promise<{ today: string; tasks: TaskDto[] }> {
+  const needle = foldText(query.trim());
+  if (needle === '') throw new TaskError(400, 'query must not be empty');
+  const today = todayBerlin(now);
+  const rows = await prisma.task.findMany({
+    where: { archivedAt: null, doneAt: null },
+    include: taskInclude,
+  });
+  const hits = rows.filter(
+    (r) => foldText(r.title).includes(needle) || foldText(r.notes ?? '').includes(needle),
+  );
+  const dtos = hits.map((r) => toDto(r, today));
+  const byId = new Map(dtos.map((d) => [d.id, d]));
+  const sorted = sortTasks(
+    dtos.map((d, i) => ({
+      id: d.id,
+      priority: d.priority,
+      dueDate: d.dueDate,
+      recurrence: d.recurrence,
+      createdAt: hits[i].createdAt,
+    })),
+    today,
+  );
+  const order = [...sorted.faellig, ...sorted.demnaechst, ...sorted.spaeter, ...sorted.irgendwann];
+  return { today, tasks: order.map((t) => byId.get(t.id)!) };
+}
+
+export interface HistoryEntry {
+  date: string;
+  kind: 'DONE' | 'SKIPPED';
+  by: { id: number; displayName: string };
+  via: string;
+  at: string;
+}
+
+const HISTORY_LIMIT = 20;
+
+/** An active task plus its latest completions (DONE and SKIPPED), newest first. */
+export async function getTask(
+  id: number,
+  now: Date = new Date(),
+): Promise<{ today: string; task: TaskDto; history: HistoryEntry[] }> {
+  await activeTask(prisma, id);
+  const task = await dtoById(prisma, id);
+  const rows = await prisma.completion.findMany({
+    where: { taskId: id },
+    orderBy: [{ at: 'desc' }, { id: 'desc' }],
+    take: HISTORY_LIMIT,
+    include: { user: { select: { id: true, displayName: true } } },
+  });
+  return {
+    today: todayBerlin(now),
+    task,
+    history: rows.map((r) => ({
+      date: r.date,
+      kind: r.kind,
+      by: r.user,
+      via: r.via,
+      at: r.at.toISOString(),
+    })),
+  };
 }

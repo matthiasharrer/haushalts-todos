@@ -31,6 +31,9 @@
   no way to really remove rows. Fine for now; maybe an "Archiv" view later.
 - **Undo after an edit:** undo restores `dueDateBefore` even if the due date
   was edited by hand in between. Rare; revisit if it ever bites.
+- **German MCP validation errors.** The SDK's own input-schema errors come back
+  in English ("Input validation error: …"); domain errors are German. Harmless
+  for a model; fix only if it ever shows to a person.
 - **Promote stale "Irgendwann" tasks** into view if they rot (ADR-0005).
 - **Link to rezepte?** e.g. "Kühlschrank auswischen" — probably not; noted so
   nobody re-derives it.

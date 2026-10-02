@@ -27,6 +27,7 @@ model User {
   updatedAt   DateTime @updatedAt
   tasks       Task[]
   completions Completion[]
+  mcpClients  McpClient[]
 }
 
 enum Priority {
@@ -88,4 +89,21 @@ model Completion {
   dueDateBefore String?
 
   @@index([taskId, at])
+}
+
+/// A registered MCP OAuth client (ADR-0006). Only clients are rows; codes and
+/// tokens are stateless signed blobs. userId is null from registration until
+/// someone approves the consent page; then it is the approving user, for good
+/// (a different user can't re-approve it). Revoke = delete the row.
+model McpClient {
+  id           Int       @id @default(autoincrement())
+  clientId     String    @unique // opaque random id handed to the client
+  name         String // shown in Settings; from DCR client_name, editable
+  redirectUris String // JSON array of registered redirect_uris
+  userId       Int?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime? // bumped when a token is issued/refreshed
+
+  @@index([userId])
 }

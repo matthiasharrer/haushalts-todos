@@ -4,6 +4,7 @@
   import Toast from './lib/Toast.svelte';
   import Home from './routes/Home.svelte';
   import Recurring from './routes/Recurring.svelte';
+  import Settings from './routes/Settings.svelte';
 
   let me = $state<Me | null>(null);
   getMe().then(
@@ -12,8 +13,10 @@
   );
 
   // Two views, in the URL hash so reload and browser-back keep working.
-  const viewOf = (hash: string) => (hash === '#/wiederkehrend' ? 'recurring' : 'home');
-  let view = $state<'home' | 'recurring'>(viewOf(location.hash));
+  type View = 'home' | 'recurring' | 'settings';
+  const viewOf = (hash: string): View =>
+    hash === '#/wiederkehrend' ? 'recurring' : hash === '#/einstellungen' ? 'settings' : 'home';
+  let view = $state<View>(viewOf(location.hash));
 </script>
 
 <svelte:window onhashchange={() => (view = viewOf(location.hash))} />
@@ -21,10 +24,18 @@
 <div class="app" class:with-add={view === 'home'}>
   <header class="app-bar">
     <h1>Haushalt</h1>
-    {#if me}<span class="greeting">Hallo, {me.displayName}</span>{/if}
+    <a
+      class="me-link"
+      href="#/einstellungen"
+      aria-label="Einstellungen"
+      aria-current={view === 'settings' ? 'page' : undefined}
+    >
+      {#if me}<span class="greeting">Hallo, {me.displayName}</span>{/if}
+      <Icon name="settings" size={20} />
+    </a>
   </header>
   <main class="page">
-    {#if view === 'home'}<Home />{:else}<Recurring />{/if}
+    {#if view === 'home'}<Home />{:else if view === 'recurring'}<Recurring />{:else}<Settings />{/if}
   </main>
   <Toast />
   <nav class="tab-bar" aria-label="Ansicht">

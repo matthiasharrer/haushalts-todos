@@ -11,7 +11,7 @@ Phone ──▶ Ingress (Traefik + Authelia ForwardAuth) ──▶ one container
                                                         ├─ built SPA  /*  (index.html fallback)
                                                         └─ SQLite on PVC  /data/haushalt.db
 
-Claude ──▶ Ingress (Authelia-EXEMPT: /mcp, /.well-known) ──▶ same container   [planned, ADR-0006]
+Claude ──▶ Ingress (Authelia-EXEMPT: /mcp*, /.well-known/*) ──▶ same container   (ADR-0006)
 ```
 
 One Node process serves the API and the built Svelte SPA (`WEB_DIST`,
@@ -37,12 +37,41 @@ with fakes (`DEV_REMOTE_USER` etc.; an empty value removes the header).
 **e2e:** the browser context sends `Remote-User: matthias` via
 `extraHTTPHeaders`; API cases set headers per request.
 
+## MCP (ADR-0006, ported from rezepte ADR-0023/24/25/38)
+
+`apps/api/src/mcp/`: `mount.ts` (the `/mcp` gate; keeps rezepte's duck-typed
+`isAuthInfo` guard against `@hono/node-server`'s `Response` swap, a fail-open
+otherwise), `verifier.ts`, `oauthRoutes.ts` (DCR `/mcp/register`, consent
+`/oauth/authorize`, `/mcp/token`, `/.well-known/*`), `server.ts` (10 tools),
+`format.ts` (German labels in tool results). Signing in `lib/mcpOAuth.ts`:
+stateless HMAC blobs keyed by `MCP_TOKEN`. **OAuth only:** `MCP_TOKEN` is
+never accepted as a bearer. Unset means `/mcp` is not mounted (404).
+
+**User binding.** `/oauth/authorize` runs the identity middleware (no
+`Remote-User` → 401). Approving binds `McpClient.userId` with one conditional
+update (unbound or already this user; otherwise a German 403). `uid` is signed
+into code, access and refresh tokens. The token grants and the verifier all
+require `client.userId === uid`. Tools get `{ userId, clientName }` only from
+`authInfo.extra` and write through `lib/tasks.ts` as
+`Actor { userId, via: "mcp:<client name>" }`. No tool takes a user argument.
+Revoke = delete the row, effective on the next request.
+
+**Ingress (GitOps side):** exempt `/mcp` (prefix, covers `/mcp/register` and
+`/mcp/token`) and `/.well-known/`. **Everything else stays behind
+Authelia, `/oauth/authorize` included**; that is what makes consent identify the user.
+`PUBLIC_URL` (optional) overrides the origin in discovery documents;
+otherwise `X-Forwarded-*` (`lib/externalOrigin.ts`).
+
+Settings (`#/einstellungen`, gear in the header): endpoint URL, how-to, my
+clients (rename, revoke) via `/api/mcp/config` and `/api/mcp/clients` (scoped
+to the caller).
+
 ## Data
 
 Prisma 7, `prisma-client` generator into `apps/api/src/generated/prisma`
 (gitignored), better-sqlite3 driver adapter, WAL on at runtime (`src/db.ts`).
 
-Schema: `User`, `Task`, `Completion` (as in `domain-model.md`), with Prisma
+Schema: `User`, `Task`, `Completion`, `McpClient` (`userId` bound at consent, cascade on user delete) (as in `domain-model.md`), with Prisma
 enums for priority, unit, mode and completion kind. Dates are `YYYY-MM-DD`
 strings (Europe/Berlin); `doneAt`/`archivedAt`/`Completion.at` are timestamps.
 

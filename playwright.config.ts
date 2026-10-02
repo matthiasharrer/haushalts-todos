@@ -7,6 +7,7 @@
 import { defineConfig } from '@playwright/test';
 import {
   BASE_URL,
+  MCP_TOKEN,
   DATABASE_URL,
   PORT,
   REPORT_DIR,
@@ -39,6 +40,6 @@ export default defineConfig({
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { DATABASE_URL, PORT: String(PORT), WEB_DIST },
+    env: { DATABASE_URL, PORT: String(PORT), WEB_DIST, MCP_TOKEN },
   },
 });

@@ -100,10 +100,24 @@ feature.
 | TC-40 | **Convert:** a one-off added via quick-add, turned recurring ("alle 1 Woche") in the sheet on Aufgaben → it appears in Wiederkehrend. Ticking a chore off in Wiederkehrend works the same as on Aufgaben (toast with Rückgängig). | scripted |
 | TC-41 | **Demnächst** is visually quieter than Fällig (smaller or muted heading/text) but its check buttons still work and keep the 44 px target. | scripted (target size) + eyes |
 
+### MCP server (ADR-0006): scripted e2e
+
+| ID    | Case |
+| ----- | ---- |
+| TC-42 | **Gate:** `POST /mcp` without a token → 401 with `WWW-Authenticate: Bearer … resource_metadata="…/.well-known/oauth-protected-resource"`. With `MCP_TOKEN` unset the server mounts no `/mcp` at all (404, log line "MCP disabled"). |
+| TC-43 | **OAuth only:** the raw `MCP_TOKEN` sent as a bearer → 401, exactly like any invalid token. A tampered or expired access token → 401. |
+| TC-44 | **Discovery + flow:** `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource` advertise `/mcp/register`, `/oauth/authorize`, `/mcp/token`. Full flow: register (DCR, `client_name`) → `GET /oauth/authorize` **without** `Remote-User` → 401; with `Remote-User: matthias` → a German consent page naming the client **and** "Matthias" → approve (CSRF) → code → `/mcp/token` with PKCE → access + refresh token → `tools/list` lists the tools below. Negative: PKCE mismatch → `invalid_grant`; CSRF mismatch → rejected; deny → redirect with `error=access_denied`; an unregistered `redirect_uri` → error page, **never** a redirect. |
+| TC-45 | **User binding:** client A approved by `matthias`; `add_task` via A → `createdBy` Matthias, `createdVia` `mcp:<A's name>`; `complete_task` via A → `lastDone.by` Matthias, completion `via` `mcp:<A's name>`. Client B approved by `anna` → her `complete_task` is attributed to Anna. A refresh keeps the binding. |
+| TC-46 | A client already bound to `matthias` cannot be approved by `anna`: the consent page refuses with a German message (403) and issues no code. |
+| TC-47 | **Tools behave like the web:** `list_tasks` returns the same sections and order as `GET /api/tasks`; `list_recurring` matches `GET /api/recurring`; `search_tasks` finds "Waschmaschine reinigen" for "waschmaschine" and "Kühlschrank abtauen" for "kuhlschrank" (case and umlaut tolerant), active tasks only; `complete_task` (incl. `date`), `skip_task`, `undo_last`, `update_task`, `archive_task` have the same semantics as the REST endpoints. An unknown id or invalid input → a tool result with `isError: true` and a German explanation, not a protocol error. |
+| TC-48 | `get_task` returns the task plus its history (latest first, up to 20): date, DONE/SKIPPED, who, via. |
+| TC-49 | **Settings** (`#/einstellungen`, reachable from the header): shows the MCP endpoint URL (`<origin>/mcp`) and a short German how-to; lists **only my** clients (name, "verbunden seit", "zuletzt benutzt"); rename works; **revoke** (with confirm) → that client's access token gets 401 at `/mcp` immediately and its refresh token `invalid_grant`. Anna's clients are not visible to Matthias, and he can't revoke them via the API (404). The raw `MCP_TOKEN` appears nowhere in the page or any API response. |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-02 | MCP server: TC-42…49 (new), full suite + unit | **e2e 46/46** (27.0 s), **unit 25/25** (incl. ported OAuth signing tests), tsc + svelte-check clean, lead run. Lead reviewed verifier, mount guard, consent (GET/POST) and both token grants line by line, and checked the dev server by hand (401 without token, discovery, consent 401 without `Remote-User`) plus the settings page at 390 px. **Unverified until deploy:** a real Claude connector through the ingress (needs the Authelia exemptions). |
 | 2026-10-02 | ADR-0007 (home vs. Wiederkehrend): TC-27 amended, TC-36…41 new, full suite | **e2e 33/33** (21.0 s), `svelte-check` 0/0, lead run after review (lead hid the Wiederholung switch in create mode; TC-39 amended). Screenshots of both views, the create sheet and dark mode reviewed by the lead. TC-22 now reads far recurring tasks from `/api/recurring`. |
 | 2026-10-02 | Task list UI: TC-26…35 (new), full suite | **e2e 27/27** (18.7 s), `svelte-check` 0/0, lead run. Lead browser check at 390×844 via playwright-cli (tick off → moves to Demnächst with "zuletzt heute", toast with Rückgängig) plus the implementer's light/dark/sheet screenshots. TC-05 no longer asserts the empty-list text (the e2e DB is shared across specs). |
 | 2026-10-02 | Task core API: TC-06…13 (unit), TC-14…25 (e2e), full suite | **unit 12/12, e2e 17/17** (lead run). TC-25 added by the lead in review (`lastDone` ordering fix). The e2e helpers read `.e2e/e2e.db` read-only via better-sqlite3 for completion rows the API doesn't expose (TC-16, TC-23). |

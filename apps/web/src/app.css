@@ -643,3 +643,117 @@ dialog.confirm p {
   width: 100%;
   margin-top: 0.5rem;
 }
+
+/* ---- header link to Einstellungen ---- */
+.me-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: var(--tap);
+  color: inherit;
+  text-decoration: none;
+}
+.me-link[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.me-link .greeting {
+  min-width: 0;
+}
+
+/* ---- settings view ---- */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.settings h2 {
+  margin: 0 0 0.5rem;
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.card {
+  padding: var(--gutter);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card p {
+  margin: 0 0 0.75rem;
+}
+.card p:last-child {
+  margin-bottom: 0;
+}
+.endpoint {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.endpoint input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+}
+.howto {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.card .hint {
+  margin-top: 0.75rem;
+}
+.howto li + li {
+  margin-top: 0.25rem;
+}
+.clients {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.client {
+  padding: 0.75rem var(--gutter);
+}
+.client + .client {
+  border-top: 1px solid var(--border);
+}
+.client-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.client-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.client-actions .btn {
+  flex: 1;
+}
+.rename-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.rename-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}

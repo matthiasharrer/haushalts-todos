@@ -5,6 +5,9 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-02
 
+- **5. MCP server (ADR-0006).** OAuth only, tokens bound to the approving user,
+  10 German-described tools over the task service, settings page with my
+  clients. TC-42…49. Real-connector round trip pending the deploy.
 - **Home vs. Wiederkehrend (ADR-0007).** Matthias's first feedback: recurring
   chores as templates in their own tab, home = actionable list (Fällig ·
   Irgendwann · Demnächst · Später, Später one-offs only). TC-36…41.
