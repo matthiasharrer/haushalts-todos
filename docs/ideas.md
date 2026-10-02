@@ -27,6 +27,8 @@
   tasks score just their weight (overdue clamped at 0); MONTH counts as 30
   days for the scale; monthly FIXED tasks drift after clamping (31 Jan → 28 Feb
   → 28 Mar), as ADR-0004 specifies.
+- **Hard delete / purge of archived tasks.** "Löschen" only archives; there's
+  no way to really remove rows. Fine for now; maybe an "Archiv" view later.
 - **Undo after an edit:** undo restores `dueDateBefore` even if the due date
   was edited by hand in between. Rare; revisit if it ever bites.
 - **Promote stale "Irgendwann" tasks** into view if they rot (ADR-0005).

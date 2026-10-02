@@ -74,9 +74,25 @@ feature.
 | TC-24 | `GET /api/tasks` puts a HIGH task due today above a NORMAL task due today, and a NORMAL weekly task 8 days late above both. |
 | TC-25 | `lastDone` is the completion with the latest **date**, not the latest tap: Matthias completes today, then Anna logs one dated 3 days ago → `lastDone` is today by Matthias. Undo still reverts the latest *recorded* completion (Anna's). |
 
+### Task list UI (scripted e2e at 390×844: `e2e/tests/tasks-ui.spec.ts`)
+
+| ID    | Case |
+| ----- | ---- |
+| TC-26 | **Quick-add:** type a title in the "Neue Aufgabe" field at the bottom, press Enter → it appears under **Irgendwann**; the field is cleared and keeps focus (so several can be added in a row). Blank input adds nothing. |
+| TC-27 | **Sections:** headings appear in the order Fällig · Demnächst · Später · Irgendwann, each with its count; empty sections are not shown. **Später** is collapsed by default (heading + count only) and expands on tap. With no tasks at all, an empty-state text is shown instead. |
+| TC-28 | **Tick off a recurring task** that is due today: tap its round check button → it leaves Fällig and shows up in Demnächst/Später with "zuletzt heute · Matthias". A toast "… erledigt" with **Rückgängig** appears; tapping Rückgängig puts it back in Fällig with its old due date. |
+| TC-29 | **Tick off a one-off:** it disappears from the list; Rückgängig in the toast brings it back. |
+| TC-30 | **Edit sheet:** tapping a task's text opens a sheet. Change the title, set priority **wichtig**, turn on Wiederholung "alle 2 Wochen, nach Erledigung" and save → the sheet closes and the row shows the new title, a "wichtig" marker and "alle 2 Wochen". |
+| TC-31 | **Skip** ("Diesmal überspringen", only offered for recurring tasks) → the due date moves on, "zuletzt …" is unchanged. |
+| TC-32 | **Done on an earlier day:** "Erledigt am…" with yesterday's date on a weekly after-completion task → next due shows as 6 days from today. |
+| TC-33 | **Delete:** "Löschen" in the sheet asks for confirmation; confirming removes the task from the list. Cancelling keeps it. |
+| TC-34 | **Phone layout:** no horizontal scroll at 390 px; the check button and every sheet button are at least 44×44 px; due info reads in German ("heute", "seit 3 Tagen", "morgen", "in 4 Tagen", "Fr. 17.10."). |
+| TC-35 | **Errors are visible:** if an API call fails (server returns 500), the user sees a German error message and the list isn't silently wrong; Save is disabled while the title is empty. |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-02 | Task list UI: TC-26…35 (new), full suite | **e2e 27/27** (18.7 s), `svelte-check` 0/0, lead run. Lead browser check at 390×844 via playwright-cli (tick off → moves to Demnächst with "zuletzt heute", toast with Rückgängig) plus the implementer's light/dark/sheet screenshots. TC-05 no longer asserts the empty-list text (the e2e DB is shared across specs). |
 | 2026-10-02 | Task core API: TC-06…13 (unit), TC-14…25 (e2e), full suite | **unit 12/12, e2e 17/17** (lead run). TC-25 added by the lead in review (`lastDone` ordering fix). The e2e helpers read `.e2e/e2e.db` read-only via better-sqlite3 for completion rows the API doesn't expose (TC-16, TC-23). |
 | 2026-10-02 | Skeleton: TC-01…05, full suite | **5/5 pass** (6.1 s), lead run before the first commit |

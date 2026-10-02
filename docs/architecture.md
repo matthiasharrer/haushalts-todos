@@ -72,8 +72,17 @@ as 0 days late) and null for undated ones.
 
 ## Frontend
 
-Svelte 5 SPA (no task UI yet; roadmap item 3), no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
+Svelte 5 SPA, no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
 `app.css` with CSS custom properties. German UI, phone viewport first.
+
+One screen (`routes/Home.svelte`): the four sections, a fixed quick-add bar at
+the bottom, one toast slot (success with Rückgängig, or a red error), and the
+edit sheet (`lib/TaskSheet.svelte`, native `<dialog>`). Rows are
+`lib/TaskRow.svelte`. Every mutation refetches `GET /api/tasks`, failures
+included, so the list never drifts from the server. German labels live in
+the pure `lib/format.ts`. `lib/api.ts` turns every failure into an `ApiError`
+with a German message. Dark mode comes from the `light-dark()` tokens in
+`app.css`.
 
 ## Build and deploy
 

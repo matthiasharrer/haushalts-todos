@@ -6,6 +6,12 @@
   --muted: light-dark(#66706c, #9aa5a1);
   --accent: #2f6f5e;
   --danger: light-dark(#b3261e, #f2b8b5);
+  --accent-soft: light-dark(#e3efeb, #25382f);
+  --accent-text: light-dark(#2f6f5e, #8fd0bb);
+  --toast-bg: light-dark(#26302d, #e8ecea);
+  --toast-fg: light-dark(#f2f5f3, #1c2321);
+  --scrim: rgb(0 0 0 / 0.45);
+  --bar-h: 72px;
   --border: light-dark(#dfe3e0, #333a3b);
   --radius: 12px;
   --tap: 48px;
@@ -47,15 +53,538 @@ body {
   padding: var(--gutter);
 }
 
+body {
+  overflow-x: hidden;
+}
+
+.app-bar {
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: env(safe-area-inset-top);
+}
+
 .greeting {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
+  font-size: 0.875rem;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page {
+  /* room for the fixed quick-add bar (+ toast above it) */
+  padding-bottom: calc(var(--bar-h) + 24px + env(safe-area-inset-bottom));
 }
 
 .empty {
   color: var(--muted);
 }
 
+.empty-state {
+  margin: 3rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+
 .error {
   color: var(--danger);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- buttons ---- */
+.btn {
+  min-height: var(--tap);
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.btn.wide {
+  width: 100%;
+}
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: light-dark(#fff, #3a0b08);
+  font-weight: 600;
+}
+.btn.danger-outline {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* ---- sections ---- */
+.section {
+  margin-bottom: 1.25rem;
+}
+.section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.count {
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--border);
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+  letter-spacing: 0;
+}
+.chev {
+  display: inline-grid;
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+.chev.open {
+  transform: rotate(180deg);
+}
+
+/* ---- task rows ---- */
+.tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: stretch;
+  min-height: 60px;
+}
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+.check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.circle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+  color: transparent;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.check:active .circle {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+@media (hover: hover) {
+  .check:hover .circle {
+    border-color: var(--accent-text);
+    color: var(--accent-text);
+  }
+}
+.task-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.6rem var(--gutter) 0.6rem 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.title {
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.sub {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.sub > span {
+  margin-right: 0.4rem;
+}
+.sub > span:not(:last-child):not(.badge)::after {
+  content: '·';
+  margin-left: 0.4rem;
+}
+.due.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+.badge {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+.row.low .title {
+  color: var(--muted);
+}
+.row.low {
+  opacity: 0.85;
+}
+
+/* ---- quick add ---- */
+.quick-add {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: 0.5rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.5rem var(--gutter) calc(0.5rem + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.quick-add input {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.add-btn {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ---- toast ---- */
+.toast {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: calc(var(--bar-h) + 12px + env(safe-area-inset-bottom));
+  max-width: calc(40rem - 2 * var(--gutter));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+  min-height: var(--tap);
+  border-radius: var(--radius);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+}
+.toast-error {
+  background: var(--danger);
+  color: light-dark(#fff, #3a0b08);
+}
+.toast-text {
+  overflow-wrap: anywhere;
+}
+.toast-action {
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  color: light-dark(#8fd0bb, #2f6f5e);
+  cursor: pointer;
+}
+
+/* ---- dialogs ---- */
+dialog {
+  color: var(--fg);
+  padding: 0;
+  border: 0;
+}
+dialog::backdrop {
+  background: var(--scrim);
+}
+dialog.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 40rem;
+  max-height: 92dvh;
+  margin: 0 auto;
+  border-radius: 20px 20px 0 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+dialog.sheet[open] {
+  display: flex;
+}
+.sheet-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 92dvh;
+}
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem 0.25rem var(--gutter);
+}
+.sheet-head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--gutter) var(--gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sheet-foot {
+  flex: none;
+  padding: 0.75rem var(--gutter) calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.label {
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.sheet input[type='text'],
+.sheet input[type='number'],
+.sheet input[type='date'],
+.sheet textarea,
+.sheet select {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.sheet textarea {
+  resize: vertical;
+}
+.hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.date-row,
+.done-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.date-row input,
+.done-row input {
+  flex: 1;
+  min-width: 0;
+}
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.segmented label {
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+  padding: 0 0.25rem;
+  text-align: center;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+.segmented label + label {
+  border-left: 1px solid var(--border);
+}
+.segmented label.selected {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -3px;
+}
+.switch-row,
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+.switch-row input,
+.radio-row input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.radio-row {
+  align-items: flex-start;
+  padding: 0.5rem 0;
+}
+.radio-row small {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.repeat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.every-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sheet .every-row .every {
+  flex: none;
+  width: 5rem;
+}
+.every-row select {
+  flex: 1;
+  width: auto;
+  min-width: 6rem;
+}
+.modes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+dialog.confirm {
+  width: min(22rem, calc(100vw - 2 * var(--gutter)));
+  margin: auto;
+  padding: var(--gutter);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+dialog.confirm h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+dialog.confirm p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+.confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.confirm-actions .btn {
+  flex: 1;
 }
