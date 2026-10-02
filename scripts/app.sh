@@ -4,7 +4,8 @@
 # Usage:
 #   scripts/app.sh start | stop | restart | status | logs [api|web]
 #
-# Ports:  API -> http://localhost:3001   Web -> http://localhost:5174
+# Ports:  API -> http://localhost:3001   Web -> http://localhost:5174 (WEB_PORT=5173 to take
+#         rezepte's port while rezepte is stopped)
 # PIDs and logs live under THIS repo's .run/ (gitignored), and stop only ever
 # signals the PIDs recorded there — it cannot touch the sibling rezepte app
 # (ports 3000/5173, its own .run/).
@@ -60,8 +61,8 @@ case "${1:-}" in
   start)
     echo "Starting Haushalt..."
     start_one api "$API_PID" "$API_LOG" env PORT=3001 npm --workspace @haushalt/api run dev
-    start_one web "$WEB_PID" "$WEB_LOG" npm --workspace @haushalt/web run dev
-    echo "Open the web app on the Coder-forwarded port 5174."
+    start_one web "$WEB_PID" "$WEB_LOG" env WEB_PORT="${WEB_PORT:-5174}" npm --workspace @haushalt/web run dev
+    echo "Open the web app on the Coder-forwarded port ${WEB_PORT:-5174}."
     ;;
   stop)
     echo "Stopping Haushalt..."

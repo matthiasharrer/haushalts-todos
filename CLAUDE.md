@@ -94,6 +94,10 @@ scripts/app.sh logs [api|web]
 ```
 
 - Web **:5174**, API **:3001** (rezepte uses 3000/5173, and both can run at once).
+- **Matthias's preference: he opens whichever app he's testing on :5173.** When
+  rezepte is stopped, run Haushalt there: `WEB_PORT=5173 scripts/app.sh
+  start|restart`. Check `scripts/app.sh status` / `ss -ltn` first, and keep
+  passing `WEB_PORT` on every restart, or it falls back to 5174.
 - Matthias opens **`https://5174--main--rezepte-main--m-moufou.proxy.coder.hamathy.de/`**.
 - HMR covers frontend edits; **restart after backend changes**, dependency
   installs or schema changes.

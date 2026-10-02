@@ -6,7 +6,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 export default defineConfig({
   plugins: [svelte()],
   server: {
-    port: 5174,
+    // WEB_PORT lets Haushalt take 5173 when rezepte is stopped (scripts/app.sh).
+    port: Number(process.env.WEB_PORT ?? 5174),
     strictPort: true,
     // Bind to all interfaces so the Coder workspace can forward the port.
     host: true,
