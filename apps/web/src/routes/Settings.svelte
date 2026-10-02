@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Spinner from '../lib/Spinner.svelte';
   import {
     getMcpConfig,
     listMcpClients,
@@ -85,7 +86,7 @@
   <section aria-labelledby="mcp-title">
     <h2 id="mcp-title">Claude verbinden</h2>
     {#if !loaded}
-      <p class="empty">Lädt …</p>
+      <Spinner />
     {:else if loadError && !config}
       <p class="error" role="alert">{loadError}</p>
       <button type="button" class="btn" onclick={load}>Erneut versuchen</button>

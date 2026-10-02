@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Spinner from '../lib/Spinner.svelte';
   import {
     completeTask,
     createTask,
@@ -116,7 +117,7 @@
   <p class="error" role="alert">{loadError}</p>
   <button type="button" class="btn" onclick={refresh}>Erneut versuchen</button>
 {:else if !list}
-  <p class="empty">Lädt …</p>
+  <Spinner />
 {:else}
   {#if loadError}
     <p class="error" role="alert">{loadError}</p>
