@@ -48,7 +48,6 @@
 - **Who does how much** — completion stats per person over time. The data is
   there from day one (Completion log). Handle with care: it's a household, not a
   KPI dashboard.
-- **Seasonal chores** — "only March–October" (garden, gutters).
 - **Urgency details to revisit after real use** (ADR-0005): not-yet-due
   tasks score just their weight (overdue clamped at 0); MONTH counts as 30
   days for the scale; monthly FIXED tasks drift after clamping (31 Jan → 28 Feb

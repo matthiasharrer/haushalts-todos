@@ -3,6 +3,24 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-03 — Seasonal chores (ADR-0008)
+
+Matthias asked for seasonal recurring chores ("Rasenmähen nur im Sommer").
+Product calls (his): **whole months**, **an overdue chore stays due past its
+season's end**, **due on the 1st of the start month** when the season begins.
+Built by a Sonnet subagent against TC-50…56; the lead reviewed and ran the suite.
+
+- Design: `seasonFrom`/`seasonTo` columns; `seasonDate()` in `recurrence.ts`
+  moves the stored `dueDate` to the next season start. No read-time dormant
+  state, so sections and urgency are unchanged. `resting` is display-only.
+- **Review catch:** the web sheet always resends `dueDate` + `recurrence`, so
+  "snap when the field is in the patch" would have moved an overdue chore just
+  by renaming it. Update now snaps only when the date or season *changes*.
+- Accepted gap (in the ADR): removing a season doesn't pull a resting chore's
+  date back from the 1st of its start month. Edit the date by hand.
+- Not deployed/tagged; release is Matthias's call. Dev: rezepte was on :5173,
+  so Haushalt ran on :5174 this session.
+
 ## 2026-10-02 (later) — MVP built in one session, `v0.1.0` tagged
 
 Same session as the bootstrap. Shipped in order, each reviewed by the lead

@@ -107,6 +107,17 @@ const recurrenceSchema = z
         'AFTER_COMPLETION (Standard): das nächste Mal wird ab dem Erledigungstag gerechnet. ' +
           'FIXED: fester Kalendertakt, unabhängig davon, wann erledigt wurde.',
       ),
+    season: z
+      .object({
+        from: z.number().describe('Erster Monat der Saison, ganze Zahl 1 (Januar) bis 12 (Dezember).'),
+        to: z.number().describe('Letzter Monat der Saison (inklusive), ganze Zahl 1 bis 12. Kleiner als from = über den Jahreswechsel, z.B. from 11, to 2 = November bis Februar.'),
+      })
+      .nullish()
+      .describe(
+        'Optional: Saison in ganzen Monaten, z.B. {from: 3, to: 10} für März bis Oktober (Rasenmähen). ' +
+          'Außerhalb der Saison ruht die Aufgabe: nach dem Erledigen rückt sie auf den 1. des nächsten Saisonstart-Monats. ' +
+          'Weglassen oder null = ganzjährig. Bei update_task ersetzt recurrence die ganze Regel, also season immer mitsenden, wenn sie bleiben soll.',
+      ),
   })
   .describe('Wiederholung. Weglassen für eine einmalige Aufgabe.');
 
@@ -124,7 +135,7 @@ export function buildMcpServer(): McpServer {
         'jeweils schon richtig sortiert: faellig (heute oder überfällig), demnaechst (in den ' +
         'nächsten 7 Tagen), spaeter (einmalige Aufgaben weiter in der Zukunft) und irgendwann ' +
         '(ohne Datum). Wiederkehrende Aufgaben, die weit in der Zukunft liegen, stehen hier nicht, ' +
-        'sondern in list_recurring. Erledigte einmalige und archivierte Aufgaben fehlen. Jede ' +
+        'sondern in list_recurring. Saisonale Aufgaben außerhalb der Saison stehen ebenfalls nur dort. Erledigte einmalige und archivierte Aufgaben fehlen. Jede ' +
         'Aufgabe hat Rohdaten (dueDate) und deutsche Felder (dueLabel, recurrenceLabel, lastDone.label).',
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
@@ -145,7 +156,8 @@ export function buildMcpServer(): McpServer {
       title: 'Wiederkehrende Aufgaben auflisten',
       description:
         'Alle aktiven wiederkehrenden Aufgaben (Haushaltsarbeiten), nach nächstem Fälligkeitstag ' +
-        'sortiert, auch die, die erst in Wochen wieder dran sind. Mit recurrenceLabel ("alle 2 Wochen") ' +
+        'sortiert, auch die, die erst in Wochen wieder dran sind. Mit recurrenceLabel ("alle 2 Wochen, März–Oktober"), ' +
+        'resting (true = saisonale Aufgabe, die gerade ruht und erst zum Saisonstart wieder fällig wird) ' +
         'und lastDone (wer es zuletzt wann gemacht hat).',
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },

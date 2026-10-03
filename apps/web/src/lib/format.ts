@@ -34,12 +34,29 @@ export function dueLabel(due: string | null, today: string): string | null {
   return weekdayDate(due);
 }
 
+export const MONTHS = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+];
+
+/** "März–Oktober", or just "Juni" for a single month. */
+export function seasonLabel(s: { from: number; to: number }): string {
+  return s.from === s.to ? MONTHS[s.from - 1] : `${MONTHS[s.from - 1]}–${MONTHS[s.to - 1]}`;
+}
+
+/** "ruht bis März" for a resting seasonal chore (the month of its due date). */
+export function restingLabel(due: string): string {
+  return `ruht bis ${MONTHS[Number(due.slice(5, 7)) - 1]}`;
+}
+
 export function recurrenceLabel(r: Recurrence | null): string | null {
   if (!r) return null;
   const { every, unit } = r;
-  if (every === 1) return unit === 'DAY' ? 'jeden Tag' : unit === 'WEEK' ? 'jede Woche' : 'jeden Monat';
-  const u = unit === 'DAY' ? 'Tage' : unit === 'WEEK' ? 'Wochen' : 'Monate';
-  return `alle ${every} ${u}`;
+  const base =
+    every === 1
+      ? unit === 'DAY' ? 'jeden Tag' : unit === 'WEEK' ? 'jede Woche' : 'jeden Monat'
+      : `alle ${every} ${unit === 'DAY' ? 'Tage' : unit === 'WEEK' ? 'Wochen' : 'Monate'}`;
+  return r.season ? `${base} · ${seasonLabel(r.season)}` : base;
 }
 
 /** "zuletzt heute · Matthias" */

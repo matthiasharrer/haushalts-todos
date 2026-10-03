@@ -1,5 +1,7 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { ANNA, MATTHIAS, addDays, dbAll, today, uniq } from '../support/tasks.js';
+import {
+  ANNA, MATTHIAS, addDays, dbAll, farSeason, firstOfLastMonth, lastMonthSeason, nextMonthStart, today, uniq,
+} from '../support/tasks.js';
 
 // Identity is set per request; every case creates its own uniquely titled tasks.
 test.use({ extraHTTPHeaders: {} });
@@ -59,7 +61,7 @@ test('TC-15 recurring: default due today; due in 3 days -> demnaechst; invalid -
   const rec = { every: 1, unit: 'WEEK' };
   const a = await create(request, { title: uniq('Bettwäsche'), recurrence: rec });
   expect(a.dueDate).toBe(today());
-  expect(a.recurrence).toEqual({ every: 1, unit: 'WEEK', mode: 'AFTER_COMPLETION' });
+  expect(a.recurrence).toEqual({ every: 1, unit: 'WEEK', mode: 'AFTER_COMPLETION', season: null });
   expect((await find(request, a.id)).section).toBe('faellig');
 
   const b = await create(request, {
@@ -193,7 +195,7 @@ test('TC-22 PATCH fields, recurrence null -> one-off; unknown id -> 404', async 
     headers: MATTHIAS,
     data: { recurrence: { every: 2, unit: 'MONTH', mode: 'FIXED' } },
   });
-  expect((await fixed.json()).recurrence).toEqual({ every: 2, unit: 'MONTH', mode: 'FIXED' });
+  expect((await fixed.json()).recurrence).toEqual({ every: 2, unit: 'MONTH', mode: 'FIXED', season: null });
 
   const one = await request.patch(`/api/tasks/${t.id}`, { headers: MATTHIAS, data: { recurrence: null } });
   expect((await one.json()).recurrence).toBeNull();
@@ -308,4 +310,103 @@ test('TC-36 recurring far out is not on home; /api/recurring lists active recurr
   // identity is required
   const anon = await request.get('/api/recurring');
   expect(anon.status()).toBe(401);
+});
+
+// ---- seasonal chores (ADR-0008) --------------------------------------------
+
+const recurringList = async (request: APIRequestContext) =>
+  (await request.get('/api/recurring', { headers: MATTHIAS })).json();
+
+test('TC-52 seasonal create: rests until the next season start; validation; full year = none', async ({ request }) => {
+  const season = farSeason();
+  const t = await create(request, { title: uniq('Rasen'), recurrence: { every: 2, unit: 'WEEK', season } });
+  expect(t.dueDate).toBe(nextMonthStart(today(), season.from));
+  expect(t.recurrence.season).toEqual(season);
+  expect(t.resting).toBe(true);
+  expect((await find(request, t.id)).section).toBeNull();
+  const rec = (await recurringList(request)).tasks.find((x: any) => x.id === t.id);
+  expect(rec.resting).toBe(true);
+
+  const rule = { every: 1, unit: 'WEEK' };
+  const bad = (body: object) => post(request, '/api/tasks', { title: uniq('bad'), ...body });
+  for (const season of [{ from: 0, to: 5 }, { from: 3, to: 13 }, { from: 3 }, { to: 5 }, { from: 2.5, to: 4 }]) {
+    expect((await bad({ recurrence: { ...rule, season } })).status()).toBe(400);
+  }
+  // a season without a rhythm (i.e. on something that isn't a recurring chore)
+  expect((await bad({ recurrence: { season: { from: 3, to: 10 } } })).status()).toBe(400);
+
+  for (const full of [{ from: 1, to: 12 }, { from: 3, to: 2 }]) {
+    const f = await create(request, { title: uniq('Ganzjahr'), recurrence: { ...rule, season: full } });
+    expect(f.recurrence.season).toBeNull();
+    expect(f.dueDate).toBe(today());
+    expect(f.resting).toBe(false);
+  }
+  const plain = await create(request, { title: uniq('ohne'), recurrence: rule });
+  expect(plain.recurrence.season).toBeNull();
+});
+
+test('TC-53 overdue stays due after the season ended; completing jumps to the next season; undo', async ({ request }) => {
+  const season = lastMonthSeason();
+  const old = firstOfLastMonth();
+  const t = await create(request, {
+    title: uniq('Laub'),
+    dueDate: old,
+    recurrence: { every: 1, unit: 'WEEK', season },
+  });
+  expect(t.dueDate).toBe(old);
+  expect(t.resting).toBe(false);
+  expect((await find(request, t.id)).section).toBe('faellig');
+
+  const done = await (await post(request, `/api/tasks/${t.id}/complete`)).json();
+  expect(done.dueDate).toBe(nextMonthStart(addDays(today(), 7), season.from));
+  expect(done.resting).toBe(true);
+  expect((await find(request, t.id)).section).toBeNull();
+
+  const undone = await (await post(request, `/api/tasks/${t.id}/undo`)).json();
+  expect(undone.dueDate).toBe(old);
+  expect((await find(request, t.id)).section).toBe('faellig');
+});
+
+test('TC-54 seasonal update: adding a season snaps the date; title patch keeps it; null clears', async ({ request }) => {
+  const patch = (id: number, body: object) => request.patch(`/api/tasks/${id}`, { data: body, headers: MATTHIAS });
+  const t = await create(request, { title: uniq('Hecke'), recurrence: { every: 1, unit: 'WEEK' } });
+  expect(t.dueDate).toBe(today());
+  const season = farSeason();
+  const snapped = await (await patch(t.id, { recurrence: { every: 1, unit: 'WEEK', season } })).json();
+  expect(snapped.dueDate).toBe(nextMonthStart(today(), season.from));
+  expect(snapped.recurrence.season).toEqual(season);
+  expect(snapped.resting).toBe(true);
+
+  // title-only on an overdue chore whose season has ended: date stays
+  const old = firstOfLastMonth();
+  const o = await create(request, {
+    title: uniq('Beet'),
+    dueDate: old,
+    recurrence: { every: 1, unit: 'WEEK', season: lastMonthSeason() },
+  });
+  const renamed = await (await patch(o.id, { title: uniq('Beet neu') })).json();
+  expect(renamed.dueDate).toBe(old);
+  expect(renamed.recurrence.season).toEqual(lastMonthSeason());
+  // the web sheet resends dueDate and recurrence unchanged on every save: still stays
+  const resaved = await (
+    await patch(o.id, {
+      title: uniq('Beet Sheet'),
+      dueDate: old,
+      recurrence: { every: 1, unit: 'WEEK', mode: 'AFTER_COMPLETION', season: lastMonthSeason() },
+    })
+  ).json();
+  expect(resaved.dueDate).toBe(old);
+
+  // a recurrence patch without season replaces the rule: season gone
+  const noSeason = await (await patch(snapped.id, { recurrence: { every: 1, unit: 'WEEK' } })).json();
+  expect(noSeason.recurrence.season).toBeNull();
+  expect(noSeason.resting).toBe(false);
+  // recurrence: null makes it a one-off and clears the columns
+  const again = await (await patch(snapped.id, { recurrence: { every: 1, unit: 'WEEK', season } })).json();
+  const oneOff = await (await patch(again.id, { recurrence: null })).json();
+  expect(oneOff.recurrence).toBeNull();
+  expect(oneOff.resting).toBe(false);
+  expect(dbAll('select seasonFrom, seasonTo from Task where id = ?', again.id)).toEqual([
+    { seasonFrom: null, seasonTo: null },
+  ]);
 });

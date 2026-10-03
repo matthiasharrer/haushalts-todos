@@ -1,7 +1,7 @@
 // MCP tools: TC-47 (same semantics as REST), TC-48 (get_task history),
 // TC-49 (settings: own clients only, rename, revoke).
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { ANNA, MATTHIAS, addDays, dbAll, today, uniq } from '../support/tasks.js';
+import { ANNA, MATTHIAS, MONTH_NAMES, addDays, dbAll, farSeason, nextMonthStart, today, uniq } from '../support/tasks.js';
 import { MCP_TOKEN } from '../support/paths.js';
 import { callJson, callTool, postMcp, runOAuthFlow, textOf, type OAuthResult } from '../support/mcpClient.js';
 
@@ -122,7 +122,7 @@ test('TC-47 complete/skip/undo/update/archive haben dieselbe Semantik wie REST',
   const u2 = await callJson(request, m.accessToken, 'update_task', { id: one.id, notes: null, due_date: null });
   expect(u2).toMatchObject({ notes: null, dueDate: null });
   const u3 = await callJson(request, m.accessToken, 'update_task', { id: one.id, recurrence: { every: 3, unit: 'DAY' } });
-  expect(u3.recurrence).toEqual({ every: 3, unit: 'DAY', mode: 'AFTER_COMPLETION' });
+  expect(u3.recurrence).toEqual({ every: 3, unit: 'DAY', mode: 'AFTER_COMPLETION', season: null });
   expect(u3.dueDate).toBe(t); // a recurring task always has a date
   const bad = await callTool(request, m.accessToken, 'update_task', { id: one.id, due_date: null });
   expect(bad.isError).toBe(true);
@@ -227,4 +227,40 @@ test('TC-49 Einstellungen-API: nur eigene Clients; Umbenennen; Trennen wirkt sof
   expect(refresh.status()).toBe(400);
   expect((await refresh.json()).error).toBe('invalid_grant');
   expect((await request.delete(`/api/mcp/clients/${entry.id}`, { headers: MATTHIAS })).status()).toBe(404);
+});
+
+test('TC-56 seasonal chores via MCP: season in/out, label, resting, German errors', async ({ request }) => {
+  const season = farSeason();
+  const label = season.from === season.to ? MONTH_NAMES[season.from - 1] : `${MONTH_NAMES[season.from - 1]}–${MONTH_NAMES[season.to - 1]}`;
+  const t = await callJson(request, m.accessToken, 'add_task', {
+    title: uniq('Rasen mcp'),
+    recurrence: { every: 2, unit: 'WEEK', season },
+  });
+  expect(t.recurrence.season).toEqual(season);
+  expect(t.recurrenceLabel).toContain(`alle 2 Wochen, ${label}`);
+  expect(t.resting).toBe(true);
+  expect(t.dueDate).toBe(nextMonthStart(today(), season.from));
+
+  const rec = await callJson(request, m.accessToken, 'list_recurring', {});
+  const mine = rec.tasks.find((x: any) => x.id === t.id);
+  expect(mine.resting).toBe(true);
+  expect(mine.recurrenceLabel).toContain(label);
+  const got = await callJson(request, m.accessToken, 'get_task', { id: t.id });
+  expect(got.task.resting).toBe(true);
+  expect(got.task.recurrenceLabel).toContain(label);
+
+  const bad = await callTool(request, m.accessToken, 'update_task', {
+    id: t.id,
+    recurrence: { every: 2, unit: 'WEEK', season: { from: 0, to: 13 } },
+  });
+  expect(bad.isError).toBe(true);
+  expect(textOf(bad)).toContain('Ungültige Eingabe');
+
+  const cleared = await callJson(request, m.accessToken, 'update_task', {
+    id: t.id,
+    recurrence: { every: 2, unit: 'WEEK', season: null },
+  });
+  expect(cleared.recurrence.season).toBeNull();
+  expect(cleared.recurrenceLabel).not.toContain(label);
+  expect(cleared.resting).toBe(false);
 });

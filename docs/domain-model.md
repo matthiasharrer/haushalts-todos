@@ -2,7 +2,7 @@
 
 The **target** conceptual model. What's actually in the schema right now is in
 `apps/api/prisma/schema.prisma`; this file is where the schema is heading. The
-reasoning is in ADR-0004 (recurrence), ADR-0005 (urgency) and ADR-0003
+reasoning is in ADR-0004 (recurrence), ADR-0005 (urgency), ADR-0008 (seasons) and ADR-0003
 (identity).
 
 ## Entities
@@ -48,11 +48,14 @@ forward each time it's completed (ADR-0004).
 | `every` | Positive integer |
 | `unit`  | `DAY` · `WEEK` · `MONTH` |
 | `mode`  | `AFTER_COMPLETION` (default) · `FIXED` |
+| `season`| Optional `{ from, to }`, months 1–12 inclusive, may wrap the year end (ADR-0008). Null = all year. |
 
 - `AFTER_COMPLETION`: next due = completion date + interval.
 - `FIXED`: next due = first slot on the anchored grid that is after both the
   current due date and the completion date. Missed slots are skipped, never
   queued.
+- `season`: a next due date outside the window jumps to the 1st of the next
+  start month. An overdue chore stays due past its season's end (ADR-0008).
 
 ### Completion
 
@@ -76,3 +79,5 @@ The log. One row each time a task is ticked off **or skipped**.
   Recurring chores further out live in the "Wiederkehrend" view (ADR-0007).
 - **Urgency score** — the sort key within *Fällig* (ADR-0005).
 - **Last done** — latest `DONE` completion of a task.
+- **Resting** — a seasonal chore out of season and not overdue (ADR-0008);
+  display only.

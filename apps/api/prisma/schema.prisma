@@ -63,6 +63,8 @@ model Task {
   recurrenceEvery Int?
   recurrenceUnit  RecurrenceUnit?
   recurrenceMode  RecurrenceMode?
+  seasonFrom      Int?
+  seasonTo        Int?
   doneAt          DateTime?
   archivedAt      DateTime?
   createdById     Int

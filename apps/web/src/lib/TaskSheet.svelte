@@ -5,6 +5,7 @@
   import { onMount } from 'svelte';
   import type { Mode, Priority, Task, TaskPatch, Unit } from './api';
   import ConfirmDialog from './ConfirmDialog.svelte';
+  import { MONTHS } from './format';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -32,6 +33,10 @@
   let every = $state(t?.recurrence?.every ?? 1);
   let unit = $state<Unit>(t?.recurrence?.unit ?? 'WEEK');
   let mode = $state<Mode>(t?.recurrence?.mode ?? 'AFTER_COMPLETION');
+  // ADR-0008: default window März–Oktober when the switch is turned on.
+  let seasonal = $state(!!t?.recurrence?.season);
+  let seasonFrom = $state(t?.recurrence?.season?.from ?? 3);
+  let seasonTo = $state(t?.recurrence?.season?.to ?? 10);
 
   let showDone = $state(false);
   let doneDate = $state(yesterday());
@@ -77,7 +82,9 @@
         notes: notes.trim() === '' ? null : notes,
         priority,
         dueDate: dueDate === '' ? null : dueDate,
-        recurrence: repeat ? { every, unit, mode } : null,
+        recurrence: repeat
+          ? { every, unit, mode, season: seasonal ? { from: seasonFrom, to: seasonTo } : null }
+          : null,
       }),
     );
   };
@@ -192,6 +199,26 @@
               </span>
             </label>
           </fieldset>
+          <label class="switch-row">
+            <input type="checkbox" bind:checked={seasonal} />
+            <span>Nur in bestimmten Monaten</span>
+          </label>
+          {#if seasonal}
+            <div class="season-row">
+              <label>
+                <span class="label">von</span>
+                <select bind:value={seasonFrom} aria-label="von">
+                  {#each MONTHS as name, i}<option value={i + 1}>{name}</option>{/each}
+                </select>
+              </label>
+              <label>
+                <span class="label">bis</span>
+                <select bind:value={seasonTo} aria-label="bis">
+                  {#each MONTHS as name, i}<option value={i + 1}>{name}</option>{/each}
+                </select>
+              </label>
+            </div>
+          {/if}
         </div>
       {/if}
 

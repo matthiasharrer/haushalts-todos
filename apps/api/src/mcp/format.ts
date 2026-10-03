@@ -36,6 +36,13 @@ export function dueLabel(due: string | null, today: string): string | null {
   return weekdayDate(due);
 }
 
+const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+/** "März–Oktober", or "Juni" for a single month. */
+export function seasonLabel(s: { from: number; to: number }): string {
+  return s.from === s.to ? MONTHS[s.from - 1] : `${MONTHS[s.from - 1]}–${MONTHS[s.to - 1]}`;
+}
+
 export function recurrenceLabel(r: TaskDto['recurrence']): string | null {
   if (!r) return null;
   const { every, unit, mode } = r;
@@ -43,7 +50,8 @@ export function recurrenceLabel(r: TaskDto['recurrence']): string | null {
     every === 1
       ? unit === 'DAY' ? 'jeden Tag' : unit === 'WEEK' ? 'jede Woche' : 'jeden Monat'
       : `alle ${every} ${unit === 'DAY' ? 'Tage' : unit === 'WEEK' ? 'Wochen' : 'Monate'}`;
-  return mode === 'FIXED' ? `${base} (fester Termin)` : `${base} (ab dem Erledigen)`;
+  const season = r.season ? `, ${seasonLabel(r.season)}` : '';
+  return mode === 'FIXED' ? `${base}${season} (fester Termin)` : `${base}${season} (ab dem Erledigen)`;
 }
 
 const PRIORITY_LABEL = { LOW: 'niedrig', NORMAL: 'normal', HIGH: 'hoch' } as const;

@@ -6,7 +6,7 @@ import { prisma } from '../db.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { isValidDate, todayBerlin } from './dates.js';
 import { foldText } from './text.js';
-import { nextDueDate } from './recurrence.js';
+import { inSeason, nextDueDate, normalizeSeason, seasonDate, type Season } from './recurrence.js';
 import { sectionOf, sortTasks, urgencyScore, type Section } from './urgency.js';
 
 export class TaskError extends Error {
@@ -27,10 +27,14 @@ export interface Actor {
 
 const dateStr = z.string().refine(isValidDate, 'must be a real date as YYYY-MM-DD');
 
+const month = z.number().int().min(1).max(12);
+
 const recurrence = z.object({
   every: z.number().int().min(1).max(1000),
   unit: z.enum(['DAY', 'WEEK', 'MONTH']),
   mode: z.enum(['AFTER_COMPLETION', 'FIXED']).default('AFTER_COMPLETION'),
+  // ADR-0008: both ends required inside the object; null/absent = year-round.
+  season: z.object({ from: month, to: month }).nullish(),
 });
 
 export const createTaskSchema = z.object({
@@ -81,7 +85,10 @@ export interface TaskDto {
     every: number;
     unit: 'DAY' | 'WEEK' | 'MONTH';
     mode: 'AFTER_COMPLETION' | 'FIXED';
+    season: Season | null;
   } | null;
+  /** Derived (ADR-0008): seasonal, out of season today, and not due yet. */
+  resting: boolean;
   createdBy: { id: number; displayName: string };
   lastDone: { date: string; by: { id: number; displayName: string } } | null;
   urgency: number | null;
@@ -91,8 +98,17 @@ export interface TaskDto {
 function toDto(t: TaskRow, today: string): TaskDto {
   const rec =
     t.recurrenceEvery && t.recurrenceUnit && t.recurrenceMode
-      ? { every: t.recurrenceEvery, unit: t.recurrenceUnit, mode: t.recurrenceMode }
+      ? {
+          every: t.recurrenceEvery,
+          unit: t.recurrenceUnit,
+          mode: t.recurrenceMode,
+          season:
+            t.seasonFrom !== null && t.seasonTo !== null
+              ? { from: t.seasonFrom, to: t.seasonTo }
+              : null,
+        }
       : null;
+  const season = rec?.season ?? null;
   const last = t.completions[0];
   const sortable = {
     id: t.id,
@@ -108,6 +124,7 @@ function toDto(t: TaskRow, today: string): TaskDto {
     priority: t.priority,
     dueDate: t.dueDate,
     recurrence: rec,
+    resting: !!season && !inSeason(today, season) && t.dueDate !== null && t.dueDate > today,
     createdBy: t.createdBy,
     lastDone: last ? { date: last.date, by: last.user } : null,
     urgency: urgencyScore(sortable, today),
@@ -132,10 +149,13 @@ async function dtoById(db: Db, id: number): Promise<TaskDto> {
 }
 
 function recurrenceColumns(r: z.infer<typeof recurrence> | null) {
+  const season = normalizeSeason(r?.season);
   return {
     recurrenceEvery: r?.every ?? null,
     recurrenceUnit: r?.unit ?? null,
     recurrenceMode: r?.mode ?? null,
+    seasonFrom: season?.from ?? null,
+    seasonTo: season?.to ?? null,
   };
 }
 
@@ -186,7 +206,8 @@ export async function listRecurring(now: Date = new Date()) {
 export async function createTask(input: CreateTaskInput, actor: Actor): Promise<TaskDto> {
   const rec = input.recurrence ?? null;
   // A recurring task always has a due date; default: today (TC-15).
-  const dueDate = input.dueDate ?? (rec ? todayBerlin() : null);
+  let dueDate = input.dueDate ?? (rec ? todayBerlin() : null);
+  if (rec && dueDate) dueDate = seasonDate(dueDate, normalizeSeason(rec.season));
   const task = await prisma.task.create({
     data: {
       title: input.title,
@@ -217,6 +238,19 @@ export async function updateTask(id: number, patch: UpdateTaskInput): Promise<Ta
     if (willRecur && dueDate === null) {
       if (patch.dueDate === null) throw new TaskError(400, 'A recurring task needs a dueDate');
       dueDate = todayBerlin(); // one-off without date turned into a recurring one
+    }
+    // ADR-0008: a seasonal chore's date is snapped only when the date or the
+    // season actually changes. The web sheet resends both on every save, so
+    // "present in the patch" isn't enough: renaming an overdue chore after its
+    // season ended must not move it.
+    const oldSeason =
+      task.seasonFrom !== null && task.seasonTo !== null
+        ? { from: task.seasonFrom, to: task.seasonTo }
+        : null;
+    const season = patch.recurrence !== undefined ? normalizeSeason(patch.recurrence?.season) : oldSeason;
+    const seasonChanged = season?.from !== oldSeason?.from || season?.to !== oldSeason?.to;
+    if (willRecur && dueDate !== null && (dueDate !== task.dueDate || seasonChanged)) {
+      dueDate = seasonDate(dueDate, season);
     }
     if (dueDate !== task.dueDate) data.dueDate = dueDate;
     if (patch.recurrence !== undefined) Object.assign(data, recurrenceColumns(patch.recurrence));
@@ -266,6 +300,10 @@ async function record(
               every: task.recurrenceEvery!,
               unit: task.recurrenceUnit!,
               mode: task.recurrenceMode!,
+              season:
+                task.seasonFrom !== null && task.seasonTo !== null
+                  ? { from: task.seasonFrom, to: task.seasonTo }
+                  : null,
             },
             day,
           ),

@@ -4,7 +4,7 @@
 > every time. **This process is binding.** Cases are written from what a
 > feature *should* do; a script is one way of running a case.
 >
-> _Last updated: 2026-10-02_
+> _Last updated: 2026-10-03_
 
 ## Running
 
@@ -100,6 +100,18 @@ feature.
 | TC-40 | **Convert:** a one-off added via quick-add, turned recurring ("alle 1 Woche") in the sheet on Aufgaben → it appears in Wiederkehrend. Ticking a chore off in Wiederkehrend works the same as on Aufgaben (toast with Rückgängig). | scripted |
 | TC-41 | **Demnächst** is visually quieter than Fällig (smaller or muted heading/text) but its check buttons still work and keep the 44 px target. | scripted (target size) + eyes |
 
+### Seasonal chores (ADR-0008)
+
+| ID    | Case | How |
+| ----- | ---- | --- |
+| TC-50 | `seasonDate`: season März–Oktober (3–10): 2026-10-31 → unchanged; 2026-11-01 → **2027-03-01**; 2026-02-10 → **2026-03-01**; 2026-03-01 → unchanged. Wrapping Nov–Feb (11–2): 2026-12-15 and 2027-01-31 → unchanged; 2026-03-01 → **2026-11-01**. Single month Juni (6–6): 2026-07-01 → **2027-06-01**. No season → unchanged. | unit (`recurrence.test.ts`) |
+| TC-51 | `nextDueDate` with a season: `AFTER_COMPLETION` every 2 weeks, März–Oktober, completed 2026-10-10 → **2026-10-24** (in season); completed 2026-10-20 → **2027-03-01**. `FIXED` weekly due Tue 2026-10-27, completed on time → **2027-03-01**. Every 1 month, Nov–Feb, completed 2027-02-15 → **2027-11-01**. | unit |
+| TC-52 | API create: a recurring task with a season that excludes the current month and no `dueDate` → due on the **1st of the season's next start month**, so it's not on `GET /api/tasks` and has `resting: true` in `/api/recurring`. Validation → 400: month 0 or 13, only one of `from`/`to`, season on a one-off. A full-year window (`{from:1,to:12}`, `{from:3,to:2}`) comes back as `season: null`. | scripted (API) |
+| TC-53 | **Overdue stays due:** a recurring task whose season is only *last* month, with a `dueDate` in last month → it's in `faellig` (`resting: false`). Completing it → `dueDate` = the 1st of that month next year, `resting: true`, gone from home. Undo → back to the old date, in `faellig`. | scripted (API) |
+| TC-54 | API update: adding a season to a chore whose `dueDate` is outside it snaps the date to the next season start; patching only the title of an overdue chore whose season has ended does **not** move its date, **nor does** resending its unchanged `dueDate` + `recurrence` (what the web sheet does on every save); `recurrence: null` clears the season. | scripted (API) |
+| TC-55 | **UI (390×844):** the sheet's Wiederholung section has a "Nur in bestimmten Monaten" switch; turned on it shows two month selects (von/bis), default **März–Oktober**. Saving "Rasen mähen, alle 2 Wochen, März–Oktober" → Wiederkehrend shows the rhythm with the season ("alle 2 Wochen · März–Oktober"). A resting chore shows muted with "ruht bis <Monat>". Reopening the sheet shows the saved months; turning the switch off and saving removes the season. Targets ≥ 44 px, no horizontal scroll. | scripted + eyes |
+| TC-56 | **MCP:** `add_task` / `update_task` accept `recurrence.season` (`null` clears it); `list_recurring` and `get_task` show the season in `recurrenceLabel` ("alle 2 Wochen, März–Oktober") and a `resting` flag; invalid months → `isError: true` with a German message. | scripted |
+
 ### MCP server (ADR-0006): scripted e2e
 
 | ID    | Case |
@@ -117,6 +129,7 @@ feature.
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-03 | ADR-0008 seasonal chores: TC-50…56 (new), TC-15/22/47 amended (`season: null`), full suite | **e2e 52/52** (11.2 s), **unit 27/27**, tsc + svelte-check clean, lead run. Lead found in review that the web sheet resends `dueDate` + `recurrence` on every save, so snapping on "field present" would have moved an overdue past-season chore on rename. Changed to "date or season actually changed", added to TC-54. Lead browser check at 390×844: resting chore muted with "ruht bis Dezember" (wrapping Dez–Feb), sheet with the month selects. |
 | 2026-10-02 (release) | `v0.1.0`: MCP server TC-42…49 (new) + spinner, full suite + unit | **e2e 46/46** (27.0 s), **unit 25/25** (incl. ported OAuth signing tests), tsc + svelte-check clean, lead run. Lead reviewed verifier, mount guard, consent (GET/POST) and both token grants line by line, and checked the dev server by hand (401 without token, discovery, consent 401 without `Remote-User`) plus the settings page at 390 px. **Unverified until deploy:** a real Claude connector through the ingress (needs the Authelia exemptions). |
 | 2026-10-02 | ADR-0007 (home vs. Wiederkehrend): TC-27 amended, TC-36…41 new, full suite | **e2e 33/33** (21.0 s), `svelte-check` 0/0, lead run after review (lead hid the Wiederholung switch in create mode; TC-39 amended). Screenshots of both views, the create sheet and dark mode reviewed by the lead. TC-22 now reads far recurring tasks from `/api/recurring`. |
 | 2026-10-02 | Task list UI: TC-26…35 (new), full suite | **e2e 27/27** (18.7 s), `svelte-check` 0/0, lead run. Lead browser check at 390×844 via playwright-cli (tick off → moves to Demnächst with "zuletzt heute", toast with Rückgängig) plus the implementer's light/dark/sheet screenshots. TC-05 no longer asserts the empty-list text (the e2e DB is shared across specs). |

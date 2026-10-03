@@ -9,6 +9,13 @@ export interface Recurrence {
   every: number;
   unit: Unit;
   mode: Mode;
+  /** Months 1-12, both inclusive; from > to wraps the year end (ADR-0008). */
+  season?: Season | null;
+}
+
+export interface Season {
+  from: number;
+  to: number;
 }
 
 export interface Task {
@@ -18,6 +25,8 @@ export interface Task {
   priority: Priority;
   dueDate: string | null;
   recurrence: Recurrence | null;
+  /** Seasonal chore out of season and not due yet (ADR-0008). */
+  resting: boolean;
   createdBy: { id: number; displayName: string };
   lastDone: { date: string; by: { id: number; displayName: string } } | null;
   urgency: number | null;

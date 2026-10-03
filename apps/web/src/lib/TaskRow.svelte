@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Task } from './api';
-  import { dueLabel, lastDoneLabel, recurrenceLabel } from './format';
+  import { dueLabel, lastDoneLabel, recurrenceLabel, restingLabel } from './format';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -11,13 +11,15 @@
   }
   let { task, today, oncomplete, onedit }: Props = $props();
 
-  const due = $derived(dueLabel(task.dueDate, today));
+  const due = $derived(
+    task.resting && task.dueDate ? restingLabel(task.dueDate) : dueLabel(task.dueDate, today),
+  );
   const overdue = $derived(task.dueDate !== null && task.dueDate < today);
   const rec = $derived(recurrenceLabel(task.recurrence));
   const last = $derived(lastDoneLabel(task.lastDone, today));
 </script>
 
-<li class="row" class:low={task.priority === 'LOW'}>
+<li class="row" class:low={task.priority === 'LOW'} class:resting={task.resting}>
   <button type="button" class="check" aria-label={`Erledigt: ${task.title}`} onclick={oncomplete}>
     <span class="circle"><Icon name="check" size={16} /></span>
   </button>
