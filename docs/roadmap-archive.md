@@ -5,6 +5,13 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-04
 
+- **Trigger tasks for Home Assistant (ADR-0010), `v0.4.0`.** Third task kind
+  "Auslöser": one row, waiting until `POST /hooks/<id>` (per-task token,
+  hashed, shown once) makes it due and pushes to everyone; refire setting per
+  task; "Wiederkehrend" became "Routinen". Also in this release: the test push
+  reports why it failed (502 + German reason). TC-72…81; TC-82 (real HA) by
+  Matthias. Push egress in prod opened by Matthias the same day; TC-71 he
+  tests with Tina and reports bugs separately.
 - **Push notifications (ADR-0009), `v0.3.0`.** Installable PWA with a
   push-only service worker, Web Push (VAPID keys in the DB), per-device
   subscriptions, daily digest at a per-user time, `notify` flag per task,
