@@ -5,6 +5,12 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-04
 
+- **Push notifications (ADR-0009), `v0.3.0`.** Installable PWA with a
+  push-only service worker, Web Push (VAPID keys in the DB), per-device
+  subscriptions, daily digest at a per-user time, `notify` flag per task,
+  push to the others on a new one-off. TC-58…71 (TC-71 by hand on Android,
+  pending). Pulled forward by Matthias as the base for Home Assistant
+  triggers.
 - **Seasonal chores (ADR-0008), `v0.2.0`.** Month window per recurring chore,
   resting chores in Wiederkehrend, season change recomputes a resting date.
   TC-50…57. (Matthias's request, not a planned roadmap item.) Deployed by

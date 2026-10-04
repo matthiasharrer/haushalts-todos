@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-04 (push notifications in progress, ADR-0009; then HA triggers)_
+_Last updated: 2026-10-04 (`v0.3.0` tagged: push, ADR-0009; next: deploy + HA triggers)_
 
 ## Next — MVP in real use
 
@@ -14,10 +14,8 @@ more.
 
 Matthias pulled two features forward (2026-10-04):
 
-1. **Push notifications** (ADR-0009): PWA shell, Web Push, daily digest
-   (per-user time, switchable), `notify` flag per task, push on new one-offs
-   to everyone but the creator. Cases TC-58…71.
-   - Deploy needs: pod egress to the push service (`fcm.googleapis.com`).
+1. **Deploy `v0.3.0`** (Matthias): pod egress to `fcm.googleapis.com`
+   (HTTPS); then TC-71 on both phones (new one-off reaches the other person).
 2. **Home Assistant triggers** ("Waschmaschine fertig" → task + push). Own ADR.
    **Open for Matthias:** a narrow per-trigger secret URL (can only fire that
    one trigger, revocable) as a deliberate exception to ADR-0006's "no static
