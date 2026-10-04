@@ -14,8 +14,6 @@ more.
 
 - [ ] **Deploy `v0.2.0`** (seasonal chores, ADR-0008): bump the image tag in
       the GitOps repo; the migration runs on container start. Matthias's side.
-- [ ] **MCP against the real ingress:** connect Claude once per person and run
-      TC-44/45 for real (unverified so far; skip if already done).
 
 ## After the MVP
 

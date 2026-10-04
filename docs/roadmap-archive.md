@@ -11,6 +11,9 @@ test evidence in `testing.md`'s run log.
 - **4. First deploy** of `v0.1.0` (Matthias, GitOps repo): deployment,
   PVC `/data`, `MCP_TOKEN` secret, ingress with Authelia except `/mcp` and
   `/.well-known/`.
+- **MCP against the real ingress.** Matthias connected claude.ai: OAuth flow
+  and read tools work (TC-44 for real). A write through the real connector
+  (TC-45 attribution) wasn't tried; it's covered by the e2e suite.
 
 ## 2026-10-02
 
