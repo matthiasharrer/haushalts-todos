@@ -1,6 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import {
-  ANNA, MATTHIAS, addDays, dbAll, farSeason, firstOfLastMonth, lastMonthSeason, nextMonthStart, today, uniq,
+  ANNA, MATTHIAS, addDays, dbAll, farSeason, monthNow, wrapMonth, firstOfLastMonth, lastMonthSeason, nextMonthStart, today, uniq,
 } from '../support/tasks.js';
 
 // Identity is set per request; every case creates its own uniquely titled tasks.
@@ -409,4 +409,65 @@ test('TC-54 seasonal update: adding a season snaps the date; title patch keeps i
   expect(dbAll('select seasonFrom, seasonTo from Task where id = ?', again.id)).toEqual([
     { seasonFrom: null, seasonTo: null },
   ]);
+});
+
+test('TC-57 un-resting on season change: recompute from the latest completion, at the earliest today', async ({ request }) => {
+  const patch = (id: number, body: object) => request.patch(`/api/tasks/${id}`, { data: body, headers: MATTHIAS });
+  const rule = { every: 1, unit: 'WEEK', mode: 'AFTER_COMPLETION' };
+  const far = farSeason();
+  const resting = async (completedOn?: string) => {
+    const t = await create(request, { title: uniq('Ruhend'), recurrence: { ...rule, season: far } });
+    if (completedOn) {
+      const done = await (await post(request, `/api/tasks/${t.id}/complete`, { date: completedOn })).json();
+      expect(done.resting).toBe(true);
+      expect(done.dueDate).toBe(t.dueDate);
+      return done;
+    }
+    expect(t.resting).toBe(true);
+    return t;
+  };
+  const m = monthNow();
+  const includesNow = { from: m, to: m };
+  const otherFar = { from: wrapMonth(m, 5), to: wrapMonth(m, 6) };
+
+  // completed 10 days ago (completion + 7 is in the past), season removed, dueDate resent unchanged -> today, faellig
+  const a = await resting(addDays(today(), -10));
+  const aRes = await (await patch(a.id, { dueDate: a.dueDate, recurrence: rule })).json();
+  expect(aRes.dueDate).toBe(today());
+  expect(aRes.resting).toBe(false);
+  expect((await find(request, a.id)).section).toBe('faellig');
+
+  // completed 3 days ago: completion + 7 is still ahead (today + 4), so it wins over today
+  const a2 = await resting(addDays(today(), -3));
+  expect((await (await patch(a2.id, { recurrence: rule })).json()).dueDate).toBe(addDays(today(), 4));
+
+  // completed today -> today + 7
+  const b = await resting(today());
+  expect((await (await patch(b.id, { recurrence: rule })).json()).dueDate).toBe(addDays(today(), 7));
+
+  // season that includes the current month -> same recomputation
+  const c = await resting(addDays(today(), -10));
+  const cRes = await (await patch(c.id, { recurrence: { ...rule, season: includesNow } })).json();
+  expect(cRes.dueDate).toBe(today());
+  expect(cRes.recurrence.season).toEqual(includesNow);
+
+  // different season that also excludes today -> its next start
+  const d = await resting(addDays(today(), -10));
+  const dRes = await (await patch(d.id, { recurrence: { ...rule, season: otherFar } })).json();
+  expect(dRes.dueDate).toBe(nextMonthStart(today(), otherFar.from));
+  expect(dRes.resting).toBe(true);
+
+  // no completion, season removed -> today
+  const e = await resting();
+  expect((await (await patch(e.id, { recurrence: rule })).json()).dueDate).toBe(today());
+
+  // a different dueDate in the same patch wins
+  const f = await resting(addDays(today(), -10));
+  const wanted = addDays(today(), 40);
+  expect((await (await patch(f.id, { dueDate: wanted, recurrence: rule })).json()).dueDate).toBe(wanted);
+
+  // a non-resting chore is not recomputed
+  const g = await create(request, { title: uniq('Aktiv'), dueDate: addDays(today(), 2), recurrence: rule });
+  const gRes = await (await patch(g.id, { recurrence: { ...rule, season: includesNow } })).json();
+  expect(gRes.dueDate).toBe(addDays(today(), 2));
 });

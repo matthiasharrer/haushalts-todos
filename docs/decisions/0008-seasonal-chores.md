@@ -50,9 +50,14 @@ Matthias: some recurring chores only make sense part of the year, e.g.
 
 - Undo needs nothing new: `dueDateBefore` restores the date exactly, season
   jump or not.
-- Changing or removing a season doesn't pull a resting chore's date back.
-  `dueDate` stays where it is (e.g. 1 March) until it's edited by hand or the
-  next completion. That's acceptable: editing the date is one tap.
+- **Changing or removing the season of a resting chore recomputes its date**
+  (Matthias, 2026-10-04): what it would be without the old season's jump,
+  i.e. the normal rule applied to the latest completion or skip
+  (`nextDueDate` with the completion's `date` and `dueDateBefore`, without a
+  season), then the new season, and **at the earliest today**, so it doesn't
+  show up as overdue for time it spent resting. Without any completion: today,
+  then the new season. Only when the chore was resting before the edit and
+  the patch doesn't change `dueDate` itself; a date set by hand always wins.
 - Urgency scale for a seasonal chore is still its interval (ADR-0005), not
   the season gap.
 

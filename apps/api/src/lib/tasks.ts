@@ -249,7 +249,32 @@ export async function updateTask(id: number, patch: UpdateTaskInput): Promise<Ta
         : null;
     const season = patch.recurrence !== undefined ? normalizeSeason(patch.recurrence?.season) : oldSeason;
     const seasonChanged = season?.from !== oldSeason?.from || season?.to !== oldSeason?.to;
-    if (willRecur && dueDate !== null && (dueDate !== task.dueDate || seasonChanged)) {
+    const today = todayBerlin();
+    const wasResting =
+      oldSeason !== null && !inSeason(today, oldSeason) && task.dueDate !== null && task.dueDate > today;
+    if (willRecur && patch.recurrence && wasResting && seasonChanged && dueDate === task.dueDate) {
+      // Changing the season of a resting chore: its date is a placeholder (the old
+      // season's start), so recompute what the normal rule gives for the latest
+      // completion or skip, but never earlier than today. A date set by hand
+      // (dueDate differs from the stored one) skips this and wins.
+      const last = await tx.completion.findFirst({
+        where: { taskId: id },
+        orderBy: [{ at: 'desc' }, { id: 'desc' }],
+      });
+      const base = last
+        ? nextDueDate(
+            {
+              dueDate: last.dueDateBefore ?? last.date,
+              every: patch.recurrence.every,
+              unit: patch.recurrence.unit,
+              mode: patch.recurrence.mode,
+              season: null,
+            },
+            last.date,
+          )
+        : today;
+      dueDate = seasonDate(base > today ? base : today, season);
+    } else if (willRecur && dueDate !== null && (dueDate !== task.dueDate || seasonChanged)) {
       dueDate = seasonDate(dueDate, season);
     }
     if (dueDate !== task.dueDate) data.dueDate = dueDate;
