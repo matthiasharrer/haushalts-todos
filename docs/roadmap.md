@@ -5,15 +5,14 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-04 (`v0.2.0` tagged: seasonal chores, ADR-0008; first deploy of `v0.1.0` done; next: deploy `v0.2.0`, Matthias's side)_
+_Last updated: 2026-10-04 (`v0.2.0` tagged: seasonal chores, ADR-0008; deployed; next: real use)_
 
 ## Next — MVP in real use
 
 The MVP is deployed. **Use it for real** for a few weeks before building
 more.
 
-- [ ] **Deploy `v0.2.0`** (seasonal chores, ADR-0008): bump the image tag in
-      the GitOps repo; the migration runs on container start. Matthias's side.
+Nothing open right now: collect what hurts in real use, then pick from below.
 
 ## After the MVP
 

@@ -7,7 +7,8 @@ test evidence in `testing.md`'s run log.
 
 - **Seasonal chores (ADR-0008), `v0.2.0`.** Month window per recurring chore,
   resting chores in Wiederkehrend, season change recomputes a resting date.
-  TC-50…57. (Matthias's request, not a planned roadmap item.)
+  TC-50…57. (Matthias's request, not a planned roadmap item.) Deployed by
+  Matthias on 2026-10-04.
 - **4. First deploy** of `v0.1.0` (Matthias, GitOps repo): deployment,
   PVC `/data`, `MCP_TOKEN` secret, ingress with Authelia except `/mcp` and
   `/.well-known/`.
