@@ -54,6 +54,14 @@ export function recurrenceLabel(r: TaskDto['recurrence']): string | null {
   return mode === 'FIXED' ? `${base}${season} (fester Termin)` : `${base}${season} (ab dem Erledigen)`;
 }
 
+/** "Auslöser · wartet" / "Auslöser · ausgelöst heute"; null for other tasks. */
+export function triggerLabel(t: TaskDto, today: string): string | null {
+  if (!t.trigger) return null;
+  if (t.dueDate === null) return 'Auslöser · wartet';
+  const when = t.dueDate === today ? 'heute' : `am ${t.dueDate.slice(8)}.${t.dueDate.slice(5, 7)}.`;
+  return `Auslöser · ausgelöst ${when}`;
+}
+
 const PRIORITY_LABEL = { LOW: 'niedrig', NORMAL: 'normal', HIGH: 'hoch' } as const;
 const SECTION_LABEL = {
   faellig: 'fällig',
@@ -73,6 +81,7 @@ export function taskForModel(t: TaskDto, today: string) {
     ...t,
     dueLabel: dueLabel(t.dueDate, today),
     recurrenceLabel: recurrenceLabel(t.recurrence),
+    triggerLabel: triggerLabel(t, today),
     priorityLabel: PRIORITY_LABEL[t.priority],
     notifyLabel: t.notify ? 'Push-Benachrichtigung, sobald fällig' : null,
     sectionLabel: SECTION_LABEL[t.section],

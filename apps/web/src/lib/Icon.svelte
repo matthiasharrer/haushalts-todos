@@ -1,6 +1,6 @@
 <script lang="ts">
   // Inline SVG icons (24x24, 2px round stroke; geometry after Lucide, paths hand-rolled).
-  export type IconName = 'check' | 'plus' | 'x' | 'chevron-down' | 'repeat' | 'list' | 'settings' | 'bell';
+  export type IconName = 'check' | 'plus' | 'x' | 'chevron-down' | 'repeat' | 'list' | 'settings' | 'bell' | 'bolt' | 'copy';
 
   const icons: Record<IconName, string[]> = {
     check: ['M5 12.5l4.5 4.5L19 7.5'],
@@ -13,6 +13,8 @@
       'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
     ],
     bell: ['M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9', 'M10.3 21a1.94 1.94 0 0 0 3.4 0'],
+    bolt: ['M13 2L4 14h7l-1 8 9-12h-7l1-8z'],
+    copy: ['M9 9h11v11H9z', 'M5 15V5h10'],
     repeat: ['M17 2l4 4-4 4', 'M3 11V9a3 3 0 0 1 3-3h15', 'M7 22l-4-4 4-4', 'M21 13v2a3 3 0 0 1-3 3H3'],
   };
 

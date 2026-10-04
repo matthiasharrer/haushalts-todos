@@ -814,3 +814,68 @@ dialog.confirm p {
 .card + .card {
   margin-top: 0.75rem;
 }
+
+/* ---- trigger tasks (ADR-0010) ---- */
+.bolt {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 0.3rem;
+  color: var(--accent-text);
+}
+.check:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.group-title {
+  margin: 0 0 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.segmented.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+.ha-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ha-block .ha-state {
+  margin: 0;
+  font-weight: 600;
+}
+dialog.token-dialog {
+  width: min(26rem, calc(100vw - 2 * var(--gutter)));
+}
+dialog.token-dialog .token-warn {
+  color: inherit;
+  margin-bottom: 0.75rem;
+}
+.token-snippet {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+dialog.token-dialog .hint {
+  margin: 0.5rem 0 0;
+}
+dialog.token-dialog .confirm-actions {
+  margin-top: 1rem;
+}

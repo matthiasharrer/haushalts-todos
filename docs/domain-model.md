@@ -43,8 +43,11 @@ forward each time it's completed (ADR-0004).
 | `title`      | Required. Short, imperative: "Bettwäsche wechseln". |
 | `notes`      | Optional free text. |
 | `priority`   | `LOW` · `NORMAL` · `HIGH` — UI: *kann warten* · *normal* · *wichtig*. Default `NORMAL`. |
-| `dueDate`    | Calendar date `YYYY-MM-DD` (Europe/Berlin), nullable. One-off: the deadline, or null = "irgendwann". Recurring: the **next** due date, always set. |
-| `recurrence` | Null for one-off tasks. Otherwise `{ every, unit, mode }` — see below. |
+| `dueDate`    | Calendar date `YYYY-MM-DD` (Europe/Berlin), nullable. One-off: the deadline, or null = "irgendwann". Recurring: the **next** due date, always set. Trigger task: null while *waiting*, the fire day while *fired* (ADR-0010). |
+| `recurrence` | Null for one-off and trigger tasks. Otherwise `{ every, unit, mode }` — see below. |
+| `triggerRefire` | `PUSH` · `NONE`, null = not a trigger task; non-null **is** the kind marker (ADR-0010). What a repeated fire does while the task is already fired. Mutually exclusive with `recurrence`. |
+| `hookTokenHash` | Trigger task only: SHA-256 hex of the Home Assistant bearer token; the token itself is never stored and shown once. Dropped when the task stops being a trigger task. |
+| `firedAt`    | Trigger task only: when it last fired (instant). |
 | `doneAt`     | One-off only: set when ticked off; the task leaves the active list. Recurring tasks never get `doneAt`. |
 | `notify`     | Push everyone (but the actor) when the task becomes due (ADR-0009). Default false. |
 | `notifiedFor`| The `dueDate` this task has already pushed for; server-managed, makes "due now" fire once per date. |
@@ -66,6 +69,16 @@ forward each time it's completed (ADR-0004).
   queued.
 - `season`: a next due date outside the window jumps to the 1st of the next
   start month. An overdue chore stays due past its season's end (ADR-0008).
+
+**Trigger task** (ADR-0010): the third kind, next to one-off and recurring.
+One row forever, no generated copies. *Waiting* (`dueDate` null) it is only in
+the Routinen list; `POST /hooks/<id>` with its token makes it *fired*
+(`dueDate` = today, `firedAt` = now, due-now push to everyone). A second fire
+keeps the date and, per `triggerRefire`, pushes again (`renotify`) or does
+nothing. Completing or skipping logs a `Completion` as usual and sends it back
+to waiting (`dueDate` null, never `doneAt`); undo restores the fired date.
+Completing a waiting one is a 400. A waiting trigger task is not "Irgendwann":
+home and the digest never see it.
 
 ### Completion
 

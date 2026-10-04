@@ -25,21 +25,21 @@ const sheet = (page: Page) => page.getByRole('dialog', { name: 'Aufgabe bearbeit
 test('TC-37 Tab-Leiste: Ansicht wechseln, Hash in der URL, Reload und Zurück, Schnell-Hinzufügen nur auf Aufgaben', async ({ page }) => {
   await page.goto('/');
   const aufgaben = tabs(page).getByRole('link', { name: 'Aufgaben' });
-  const wieder = tabs(page).getByRole('link', { name: 'Wiederkehrend' });
+  const wieder = tabs(page).getByRole('link', { name: 'Routinen' });
   await expect(aufgaben).toHaveAttribute('aria-current', 'page');
   await expect(wieder).not.toHaveAttribute('aria-current', 'page');
   const quick = page.getByRole('textbox', { name: 'Neue Aufgabe' });
   await expect(quick).toBeVisible();
 
   await wieder.click();
-  await expect(page).toHaveURL(/#\/wiederkehrend$/);
+  await expect(page).toHaveURL(/#\/routinen$/);
   await expect(wieder).toHaveAttribute('aria-current', 'page');
   await expect(aufgaben).not.toHaveAttribute('aria-current', 'page');
   await expect(newBtn(page)).toBeVisible();
   await expect(quick).toHaveCount(0);
 
   await page.reload();
-  await expect(page).toHaveURL(/#\/wiederkehrend$/);
+  await expect(page).toHaveURL(/#\/routinen$/);
   await expect(newBtn(page)).toBeVisible();
   await expect(quick).toHaveCount(0);
 
@@ -92,8 +92,8 @@ test('TC-38 Wiederkehrend zeigt Termin, Rhythmus, zuletzt; ferne Aufgabe nur hie
 
   // empty state
   await page.route('**/api/recurring', (route) => route.fulfill({ json: { today: t, tasks: [] } }));
-  await tabs(page).getByRole('link', { name: 'Wiederkehrend' }).click();
-  await expect(page.getByText('Noch keine wiederkehrenden Aufgaben')).toBeVisible();
+  await tabs(page).getByRole('link', { name: 'Routinen' }).click();
+  await expect(page.getByText('Noch keine Routinen')).toBeVisible();
   await expect(newBtn(page)).toBeVisible();
   await expect(page.getByRole('listitem')).toHaveCount(0);
 });
@@ -106,6 +106,7 @@ test('TC-39 "+" öffnet das Sheet mit Wiederholung; Speichern legt die Aufgabe a
   await expect(dlg).toBeVisible();
   // Always a chore when created here (ADR-0007): no switch, the rhythm fields are just there.
   await expect(dlg.getByRole('checkbox', { name: 'Wiederholung' })).toHaveCount(0);
+  await expect(dlg.getByRole('radio', { name: 'Einmalig' })).toHaveCount(0);
   await expect(dlg.getByLabel('Anzahl')).toHaveValue('1');
   await expect(dlg.getByLabel('Einheit')).toHaveValue('WEEK');
   await expect(dlg.getByRole('radio', { name: /nach Erledigung/ })).toBeChecked();
@@ -138,13 +139,13 @@ test('TC-40 Einmalige Aufgabe wird wiederkehrend; Abhaken in Wiederkehrend mit R
 
   await row(page, title).locator('.task-body').click();
   const dlg = sheet(page);
-  await dlg.getByRole('checkbox', { name: 'Wiederholung' }).check();
+  await dlg.getByText('Wiederkehrend', { exact: true }).click(); // kind choice (ADR-0010)
   await dlg.getByLabel('Anzahl').fill('1');
   await dlg.getByLabel('Einheit').selectOption('WEEK');
   await dlg.getByRole('button', { name: 'Speichern' }).click();
   await expect(dlg).toBeHidden();
 
-  await tabs(page).getByRole('link', { name: 'Wiederkehrend' }).click();
+  await tabs(page).getByRole('link', { name: 'Routinen' }).click();
   await expect(row(page, title)).toContainText('jede Woche');
 
   // tick it off here

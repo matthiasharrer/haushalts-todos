@@ -71,7 +71,7 @@ to the caller).
 Prisma 7, `prisma-client` generator into `apps/api/src/generated/prisma`
 (gitignored), better-sqlite3 driver adapter, WAL on at runtime (`src/db.ts`).
 
-Schema: `User`, `Task`, `Completion`, `McpClient` (`userId` bound at consent, cascade on user delete), `PushSubscription` (cascade on user delete), `AppSetting` (key/value; the VAPID pair) (as in `domain-model.md`), with Prisma
+Schema: `User`, `Task` (trigger columns: ADR-0010), `Completion`, `McpClient` (`userId` bound at consent, cascade on user delete), `PushSubscription` (cascade on user delete), `AppSetting` (key/value; the VAPID pair) (as in `domain-model.md`), with Prisma
 enums for priority, unit, mode and completion kind. Dates are `YYYY-MM-DD`
 strings (Europe/Berlin); `doneAt`/`archivedAt`/`Completion.at` are timestamps.
 
@@ -99,6 +99,28 @@ permission, subscribe with the VAPID key, unsubscribe, test); the UI is the
 "Benachrichtigungen" card in Settings and the "Benachrichtigen, wenn fällig"
 switch in the task sheet (bell icon on rows with `notify`).
 
+## Trigger tasks and the hook (ADR-0010)
+
+`routes/hooks.ts` serves `POST /hooks/:id`, mounted in `app.ts` **outside
+`/api`** (no `Remote-User`) and before `mountStatic`. The credential is a
+per-task bearer token (`lib/hookToken.ts`: `hh_` + base64url of 32 random
+bytes; only the SHA-256 hex is stored in `Task.hookTokenHash`, compared with
+`timingSafeEqual`). Every failure (no or wrong token, unknown or archived id,
+not a trigger task) is the same `401 {error:'Unauthorized'}`; success is
+`200 {taskId, result: 'fired' | 'repushed' | 'ignored'}`. The domain logic is
+`fireTask`, `checkHookToken` and `issueHookToken` in `lib/tasks.ts`; the push
+for a fire is `pushFired` in `lib/pushEvents.ts` (to **all** subscriptions,
+payload `renotify: true` on a repeat; `sw.js` passes it to `showNotification`
+when there is a tag). `POST /api/tasks/:id/hook-token` (behind identity)
+generates or replaces the token and returns `{token, url}` once; `url` is
+`${HOOK_BASE_URL ?? externalOrigin}/hooks/<id>`.
+
+| Env var | Meaning |
+| ------- | ------- |
+| `HOOK_BASE_URL` | Origin put into the hook URL shown with a new token: in GitOps the in-cluster service URL (`http://<service>.<namespace>.svc.cluster.local`), where Home Assistant reaches the app without Authelia. Unset: the request's external origin (`PUBLIC_URL` / forwarded headers, see `lib/externalOrigin.ts`). |
+
+The Vite dev proxy forwards `/hooks` without faking identity headers.
+
 ## Task logic: three layers
 
 | Layer | File | Notes |
@@ -111,12 +133,13 @@ Endpoints (all behind identity):
 
 | Method | Path | Does |
 | ------ | ---- | ---- |
-| GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs, and recurring tasks from `spaeter` (ADR-0007) |
-| GET    | `/api/recurring` | `{ today, tasks }`: all active recurring tasks by `dueDate`, then id. The DTO's `section` is still the raw derived one (a far chore says `spaeter`). |
-| POST   | `/api/tasks` | create; recurring without a date → due today; `notify` optional; may push (see above) |
-| PATCH  | `/api/tasks/:id` | partial (incl. `notify`); `recurrence: null` → one-off; `updateTask` takes the `Actor` so it can push |
+| GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs, recurring tasks from `spaeter` (ADR-0007) and waiting trigger tasks (ADR-0010) |
+| GET    | `/api/recurring` | `{ today, tasks }`: all active recurring tasks by `dueDate`, then id, followed by the trigger tasks (fired by date, then waiting). The DTO's `section` is still the raw derived one (a far chore says `spaeter`). |
+| POST   | `/api/tasks` | create; recurring without a date → due today; `trigger: {refire}` → born waiting (a date is ignored; with `recurrence` 400); `notify` optional; may push (see above) |
+| PATCH  | `/api/tasks/:id` | partial (incl. `notify`); `recurrence: null` → one-off; `trigger: {refire}` / `trigger: null` switch the kind (rules in ADR-0010); `updateTask` takes the `Actor` so it can push |
 | POST   | `/api/tasks/:id/complete` | `{date?}` (≤ today) → Completion DONE + move date / finish one-off |
 | POST   | `/api/tasks/:id/skip` | recurring only → Completion SKIPPED + move date |
+| POST   | `/api/tasks/:id/hook-token` | trigger tasks only (else 400) → `{token, url}`; replaces any earlier token (ADR-0010) |
 | POST   | `/api/tasks/:id/undo` | delete latest *recorded* completion, restore `dueDateBefore` / clear `doneAt`; 409 if none |
 | DELETE | `/api/tasks/:id` | archive (204), completions kept |
 
@@ -129,7 +152,7 @@ as 0 days late) and null for undated ones.
 Svelte 5 SPA, no router yet (single `Home` route), `lib/api.ts` fetch wrapper,
 `app.css` with CSS custom properties. German UI, phone viewport first.
 
-Two views, switched by URL hash in `App.svelte` (no router; no hash = Aufgaben), with a bottom tab bar: **Aufgaben** (`routes/Home.svelte`, `#/`) and **Wiederkehrend** (`routes/Recurring.svelte`, `#/wiederkehrend`, from `GET /api/recurring`), see ADR-0007. Toast state lives in `lib/store.svelte.ts` (one `Toast` mounted in `App`, survives tab switches; a `version` counter makes the mounted view refetch). Home has the four sections (Fällig · Irgendwann · Demnächst · Später), a fixed quick-add bar at
+Two views, switched by URL hash in `App.svelte` (no router; no hash = Aufgaben), with a bottom tab bar: **Aufgaben** (`routes/Home.svelte`, `#/`) and **Routinen** (`routes/Recurring.svelte`, `#/routinen`, `#/wiederkehrend` still works; two groups, Wiederkehrend and Auf Auslöser; from `GET /api/recurring`), see ADR-0007 and ADR-0010. The task sheet's kind choice (Einmalig · Wiederkehrend · Auslöser), the Home Assistant block and the one-time token dialog (`lib/HookTokenDialog.svelte`) belong to trigger tasks. Toast state lives in `lib/store.svelte.ts` (one `Toast` mounted in `App`, survives tab switches; a `version` counter makes the mounted view refetch). Home has the four sections (Fällig · Irgendwann · Demnächst · Später), a fixed quick-add bar at
 the bottom, one toast slot (success with Rückgängig, or a red error), and the
 edit sheet (`lib/TaskSheet.svelte`, native `<dialog>`). Rows are
 `lib/TaskRow.svelte`. Every mutation refetches `GET /api/tasks`, failures

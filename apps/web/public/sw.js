@@ -14,6 +14,8 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Haushalt', {
       body: data.body || '',
       tag: data.tag,
+      // renotify without a tag throws, so only with one (ADR-0010: a repeated fire).
+      ...(data.tag && data.renotify ? { renotify: true } : {}),
       icon: '/icon-192.png',
       data: { url: data.url || '/' },
     }),

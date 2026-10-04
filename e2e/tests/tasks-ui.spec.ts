@@ -140,7 +140,7 @@ test('TC-30 Bearbeiten-Sheet: Titel, wichtig, Wiederholung alle 2 Wochen', async
   const dlg = sheet(page);
   await dlg.getByLabel('Titel').fill(renamed);
   await dlg.locator('.segmented').getByText('wichtig', { exact: true }).click();
-  await dlg.getByRole('checkbox', { name: 'Wiederholung' }).check();
+  await dlg.getByText('Wiederkehrend', { exact: true }).click(); // kind choice (ADR-0010)
   await dlg.getByLabel('Anzahl').fill('2');
   await dlg.getByLabel('Einheit').selectOption('WEEK');
   await expect(dlg.getByRole('radio', { name: /nach Erledigung/ })).toBeChecked();
@@ -265,7 +265,7 @@ test('TC-34 Handy-Layout: kein Scrollen seitwärts, Touch-Ziele, deutsche Datums
 
   await openSheet(page, long);
   const dlg = sheet(page);
-  await dlg.getByRole('checkbox', { name: 'Wiederholung' }).check();
+  await dlg.getByText('Wiederkehrend', { exact: true }).click(); // kind choice (ADR-0010)
   await dlg.getByRole('button', { name: /Erledigt am/ }).click();
   const targets = dlg.locator('button, .segmented label, .switch-row, .radio-row, input[type=date], select');
   const n = await targets.count();

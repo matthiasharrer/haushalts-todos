@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-04 (`v0.3.0` tagged: push, ADR-0009; next: deploy + HA triggers)_
+_Last updated: 2026-10-04 (trigger tasks, ADR-0010, being built)_
 
 ## Next — MVP in real use
 
@@ -16,10 +16,13 @@ Matthias pulled two features forward (2026-10-04):
 
 1. **Deploy `v0.3.0`** (Matthias): pod egress to `fcm.googleapis.com`
    (HTTPS); then TC-71 on both phones (new one-off reaches the other person).
-2. **Home Assistant triggers** ("Waschmaschine fertig" → task + push). Own ADR.
-   **Open for Matthias:** a narrow per-trigger secret URL (can only fire that
-   one trigger, revocable) as a deliberate exception to ADR-0006's "no static
-   token". Lead recommends yes.
+2. **Trigger tasks for Home Assistant** (ADR-0010, in progress 2026-10-04):
+   third task kind "Auslöser", `POST /hooks/<id>` with a per-task token,
+   "Wiederkehrend" becomes "Routinen". Deploy: set `HOOK_BASE_URL` to the
+   in-cluster service URL; `/hooks` stays behind Authelia at the ingress
+   (HA calls in-cluster). Then TC-82 with the real washer.
+3. **Follow-up as a trigger source** ("1 Tag nach *Wäsche aufhängen*"), see
+   `ideas.md`; then decide on **due times**.
 
 ## After the MVP
 

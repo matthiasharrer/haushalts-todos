@@ -4,6 +4,7 @@
     completeTask,
     createTask,
     deleteTask,
+    issueHookToken,
     listRecurring,
     messageOf,
     skipTask,
@@ -13,6 +14,7 @@
     type Task,
     type TaskPatch,
   } from '../lib/api';
+  import HookTokenDialog from '../lib/HookTokenDialog.svelte';
   import Icon from '../lib/Icon.svelte';
   import { shared, showToast } from '../lib/store.svelte';
   import TaskRow from '../lib/TaskRow.svelte';
@@ -22,6 +24,12 @@
   let loadError = $state<string | null>(null);
   let editing = $state<Task | null>(null);
   let creating = $state(false);
+  // A freshly created trigger task's token, shown once (ADR-0010).
+  let issued = $state<{ taskId: number; title: string; url: string; token: string } | null>(null);
+
+  const recurringTasks = $derived(data?.tasks.filter((t) => t.trigger === null) ?? []);
+  // The API lists fired trigger tasks first, then the waiting ones.
+  const triggerTasks = $derived(data?.tasks.filter((t) => t.trigger !== null) ?? []);
 
   async function refresh() {
     try {
@@ -59,8 +67,18 @@
   // Sheet actions: errors propagate to the sheet (inline); on success it closes.
   const sheet = {
     create: async (input: TaskPatch & { title: string }) => {
-      await mutate(() => createTask(input));
+      const task = await mutate(() => createTask(input));
       creating = false;
+      if (task.trigger) {
+        // A new trigger task gets its token right away; the task exists even if this fails.
+        try {
+          const { token, url } = await issueHookToken(task.id);
+          issued = { taskId: task.id, title: task.title, url, token };
+        } catch (e) {
+          showToast(`Aufgabe angelegt, aber der Token fehlt: ${messageOf(e)} Im Bearbeiten-Dialog erneut erzeugen.`, { error: true });
+        }
+        await refresh();
+      }
     },
     save: (t: Task) => async (patch: TaskPatch) => {
       await mutate(() => updateTask(t.id, patch));
@@ -94,16 +112,33 @@
   {/if}
   {#if data.tasks.length === 0}
     <p class="empty-state">
-      Noch keine wiederkehrenden Aufgaben. Lege eine an, z. B. „Bettwäsche wechseln“ alle 2 Wochen.
+      Noch keine Routinen. Lege eine an, z. B. „Bettwäsche wechseln“ alle 2 Wochen, oder eine Aufgabe, die Home Assistant auslöst.
     </p>
-  {:else}
-    <section class="section" aria-label="Wiederkehrende Aufgaben">
-      <h2><span>Nächste Fälligkeit</span><span class="count">{data.tasks.length}</span></h2>
+  {/if}
+  {#if recurringTasks.length > 0}
+    <section class="section" aria-label="Wiederkehrend">
+      <h2><span>Wiederkehrend</span><span class="count">{recurringTasks.length}</span></h2>
       <ul class="tasks">
-        {#each data.tasks as task (task.id)}
+        {#each recurringTasks as task (task.id)}
           <TaskRow
             {task}
             today={data.today}
+            oncomplete={() => complete(task)}
+            onedit={() => (editing = task)}
+          />
+        {/each}
+      </ul>
+    </section>
+  {/if}
+  {#if triggerTasks.length > 0}
+    <section class="section" aria-label="Auf Auslöser">
+      <h2><span>Auf Auslöser</span><span class="count">{triggerTasks.length}</span></h2>
+      <ul class="tasks">
+        {#each triggerTasks as task (task.id)}
+          <TaskRow
+            {task}
+            today={data.today}
+            showTrigger
             oncomplete={() => complete(task)}
             onedit={() => (editing = task)}
           />
@@ -132,4 +167,8 @@
       ondelete={sheet.del(editing)}
     />
   {/key}
+{/if}
+
+{#if issued}
+  <HookTokenDialog {...issued} onclose={() => (issued = null)} />
 {/if}

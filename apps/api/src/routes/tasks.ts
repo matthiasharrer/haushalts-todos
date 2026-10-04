@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { ZodType } from 'zod';
 import type { AppEnv } from '../identity.js';
+import { externalOrigin } from '../lib/externalOrigin.js';
 import {
   TaskError,
   archiveTask,
@@ -9,6 +10,7 @@ import {
   completeTask,
   createTask,
   createTaskSchema,
+  issueHookToken,
   listTasks,
   skipTask,
   undoTask,
@@ -73,6 +75,15 @@ tasks.post('/:id/complete', async (c) => {
 tasks.post('/:id/skip', async (c) => c.json(await skipTask(taskId(c), actor(c))));
 
 tasks.post('/:id/undo', async (c) => c.json(await undoTask(taskId(c))));
+
+// ADR-0010: generate or replace the trigger task's token; the only place it is ever returned.
+tasks.post('/:id/hook-token', async (c) => {
+  const id = taskId(c);
+  const token = await issueHookToken(id);
+  const base = (process.env.HOOK_BASE_URL?.trim() || externalOrigin(c)).replace(/\/+$/, '');
+  c.header('Cache-Control', 'no-store');
+  return c.json({ token, url: `${base}/hooks/${id}` });
+});
 
 tasks.delete('/:id', async (c) => {
   await archiveTask(taskId(c));

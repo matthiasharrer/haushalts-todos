@@ -3,6 +3,35 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-04 — Trigger tasks for Home Assistant (ADR-0010)
+
+- Path to the design: Matthias first asked whether HA could just call the API
+  over the cluster network (works with a forged `Remote-User`, but then the
+  network is the only credential, and nothing handles duplicates). He wanted it
+  explicit: a token managed in the app and configurable duplicate handling.
+  He also agreed to fold triggers into the task model next to recurring chores
+  (one row, waiting ↔ due, so a duplicate can't happen) and the "Routinen" list.
+- His laundry follow-up ("Wäsche abhängen" a day after "aufhängen") becomes a
+  second trigger source, "after task X + delay" (`ideas.md`, next). He'd like
+  **due times**; that needs its own ADR, after the follow-up.
+- Built by a Sonnet agent from ADR-0010 and TC-72…81. Agent calls the lead
+  kept:
+  - create mode offers only Wiederkehrend · Auslöser (ADR-0007's "no one-off
+    from Routinen");
+  - a fresh fire always pushes;
+  - `listRecurring` sorts in JS (SQLite sorts NULL first).
+- Lead in review:
+  - the "Home Assistant" token block showed for a task switched to Auslöser
+    but not yet saved (the API would 400); it now shows a hint until saved.
+  - TC-30/37–40 texts amended to the kind choice and "Routinen".
+- **v0.3.0 in prod: push didn't arrive.** The pod log showed `ETIMEDOUT` to
+  `fcm.googleapis.com:443`, so egress is blocked; that's on Matthias's side
+  (NetworkPolicy or firewall). "Test senden" said "gesendet" anyway, so the
+  test push now returns 502 with a German reason ("Push-Dienst nicht
+  erreichbar (ETIMEDOUT)…"), and the web client shows a server-sent `message`.
+- Open: Matthias opens egress, then TC-71; release with triggers is his call;
+  deploy needs `HOOK_BASE_URL`; TC-82 with the real washer.
+
 ## 2026-10-04 — Push notifications (ADR-0009)
 
 - Matthias floated Home Assistant creating tasks (washer done → "Wäsche

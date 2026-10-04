@@ -70,6 +70,11 @@ const GERMAN_TASK_ERRORS: Record<string, string> = {
   'date must not be in the future': 'Das Datum darf nicht in der Zukunft liegen.',
   'Only recurring tasks can be skipped': 'Nur wiederkehrende Aufgaben lassen sich überspringen.',
   'A recurring task needs a dueDate': 'Eine wiederkehrende Aufgabe braucht ein Fälligkeitsdatum.',
+  'A task cannot be both recurring and a trigger task':
+    'Eine Aufgabe kann nicht gleichzeitig wiederkehrend und eine Auslöser-Aufgabe sein. Zum Wechseln die andere Art mit null abschalten (z.B. recurrence: null oder trigger: null).',
+  'A waiting trigger task has nothing to do yet':
+    'Diese Auslöser-Aufgabe wartet noch auf ihren Auslöser und ist nicht fällig, also gibt es nichts abzuhaken.',
+  'Only trigger tasks have a hook token': 'Nur Auslöser-Aufgaben haben ein Token.',
   'query must not be empty': 'Der Suchbegriff darf nicht leer sein.',
 };
 
@@ -121,6 +126,20 @@ const recurrenceSchema = z
   })
   .describe('Wiederholung. Weglassen für eine einmalige Aufgabe.');
 
+const triggerSchema = z
+  .object({
+    refire: z
+      .enum(['PUSH', 'NONE'])
+      .optional()
+      .describe(
+        'Was passiert, wenn der Auslöser feuert, obwohl die Aufgabe schon fällig ist: PUSH (Standard) benachrichtigt erneut, NONE tut nichts.',
+      ),
+  })
+  .describe(
+    'Auslöser-Aufgabe: sie wartet unsichtbar (nur in list_recurring), bis Home Assistant sie auslöst, und ist dann fällig. ' +
+      'Das Token dafür kann nur in der App erzeugt werden, nicht hier. Nicht zusammen mit recurrence.',
+  );
+
 const notifySchema = z
   .boolean()
   .describe('Push-Benachrichtigung an alle, sobald die Aufgabe fällig ist (für Zeitkritisches wie die Waschmaschine).');
@@ -157,12 +176,13 @@ export function buildMcpServer(): McpServer {
   server.registerTool(
     'list_recurring',
     {
-      title: 'Wiederkehrende Aufgaben auflisten',
+      title: 'Wiederkehrende und Auslöser-Aufgaben auflisten',
       description:
         'Alle aktiven wiederkehrenden Aufgaben (Haushaltsarbeiten), nach nächstem Fälligkeitstag ' +
         'sortiert, auch die, die erst in Wochen wieder dran sind. Mit recurrenceLabel ("alle 2 Wochen, März–Oktober"), ' +
         'resting (true = saisonale Aufgabe, die gerade ruht und erst zum Saisonstart wieder fällig wird) ' +
-        'und lastDone (wer es zuletzt wann gemacht hat).',
+        'und lastDone (wer es zuletzt wann gemacht hat). Enthält auch Auslöser-Aufgaben (trigger, triggerLabel ' +
+        '"Auslöser · wartet" oder "Auslöser · ausgelöst heute"): die stehen erst auf der Startseite, wenn sie ausgelöst wurden.',
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
     },
@@ -218,15 +238,17 @@ export function buildMcpServer(): McpServer {
     {
       title: 'Aufgabe anlegen',
       description:
-        'Legt eine neue Aufgabe an (einmalig oder wiederkehrend). Sie wird der verbundenen Person ' +
+        'Legt eine neue Aufgabe an (einmalig, wiederkehrend oder auf Auslöser). Sie wird der verbundenen Person ' +
         'als Ersteller zugeschrieben. Ohne due_date ist sie "irgendwann"; eine wiederkehrende ' +
-        'Aufgabe ohne due_date ist heute fällig.',
+        'Aufgabe ohne due_date ist heute fällig. Mit trigger entsteht eine wartende Auslöser-Aufgabe ' +
+        '(due_date wird ignoriert).',
       inputSchema: z.object({
         title: z.string().describe('Titel, kurz und knapp (max. 200 Zeichen).'),
         notes: z.string().optional().describe('Notizen, optional.'),
         priority: prioritySchema.optional(),
         due_date: z.string().optional().describe(`Fälligkeitsdatum. ${dateDescription} Weglassen = kein Datum.`),
         recurrence: recurrenceSchema.optional(),
+        trigger: triggerSchema.optional(),
         notify: notifySchema.optional(),
       }),
     },
@@ -239,6 +261,7 @@ export function buildMcpServer(): McpServer {
           priority: args.priority,
           dueDate: args.due_date,
           recurrence: args.recurrence,
+          trigger: args.trigger,
           notify: args.notify,
         });
         return taskForModel(await createTask(input, actor), todayBerlin());
@@ -253,7 +276,8 @@ export function buildMcpServer(): McpServer {
         'Ändert Felder einer aktiven Aufgabe; nur übergebene Felder werden geändert. notes: null ' +
         'löscht die Notiz, due_date: null entfernt das Datum (geht nicht bei wiederkehrenden), ' +
         'recurrence: null macht die Aufgabe zu einer einmaligen. Zum Verschieben einer Fälligkeit ' +
-        'due_date setzen.',
+        'due_date setzen. trigger: {refire} macht daraus eine (wartende) Auslöser-Aufgabe, trigger: null ' +
+        'wieder eine einmalige (das Token verfällt).',
       inputSchema: z.object({
         id: idSchema,
         title: z.string().optional().describe('Neuer Titel.'),
@@ -261,6 +285,7 @@ export function buildMcpServer(): McpServer {
         priority: prioritySchema.optional(),
         due_date: z.string().nullable().optional().describe(`Neues Fälligkeitsdatum. ${dateDescription} null entfernt es.`),
         recurrence: recurrenceSchema.nullable().optional().describe('Neue Wiederholung; null macht die Aufgabe einmalig.'),
+        trigger: triggerSchema.nullable().optional(),
         notify: notifySchema.optional(),
       }),
     },
@@ -273,6 +298,7 @@ export function buildMcpServer(): McpServer {
           priority: rest.priority,
           dueDate: rest.due_date,
           recurrence: rest.recurrence,
+          trigger: rest.trigger,
           notify: rest.notify,
         });
         return taskForModel(await updateTask(id, patch, actor), todayBerlin());

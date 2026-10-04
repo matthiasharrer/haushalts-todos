@@ -15,7 +15,7 @@
   // Two views, in the URL hash so reload and browser-back keep working.
   type View = 'home' | 'recurring' | 'settings';
   const viewOf = (hash: string): View =>
-    hash === '#/wiederkehrend' ? 'recurring' : hash === '#/einstellungen' ? 'settings' : 'home';
+    hash === '#/routinen' || hash === '#/wiederkehrend' ? 'recurring' : hash === '#/einstellungen' ? 'settings' : 'home';
   let view = $state<View>(viewOf(location.hash));
 </script>
 
@@ -42,8 +42,8 @@
     <a href="#/" aria-current={view === 'home' ? 'page' : undefined}>
       <Icon name="list" /><span>Aufgaben</span>
     </a>
-    <a href="#/wiederkehrend" aria-current={view === 'recurring' ? 'page' : undefined}>
-      <Icon name="repeat" /><span>Wiederkehrend</span>
+    <a href="#/routinen" aria-current={view === 'recurring' ? 'page' : undefined}>
+      <Icon name="repeat" /><span>Routinen</span>
     </a>
   </nav>
 </div>

@@ -38,7 +38,7 @@ export async function pushAfterWrite(taskId: number, actorId: number, before: Be
       return;
     }
 
-    if (created && task.recurrenceEvery === null) {
+    if (created && task.recurrenceEvery === null && task.triggerRefire === null) {
       const actor = await prisma.user.findUnique({ where: { id: actorId } });
       await sendToOthers(actorId, {
         title: `Neue Aufgabe von ${actor?.displayName ?? 'jemandem'}`,
@@ -49,5 +49,27 @@ export async function pushAfterWrite(taskId: number, actorId: number, before: Be
     }
   } catch (err) {
     console.error('push after write failed', err);
+  }
+}
+
+/**
+ * A trigger task fired (ADR-0010). Goes to everyone: there's no acting user.
+ * `repeat` = it was already fired; the notification renotifies so the phone
+ * alerts again despite the same tag. No push when `notify` is off.
+ */
+export async function pushFired(taskId: number, repeat: boolean): Promise<void> {
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task || task.archivedAt || !task.notify) return;
+    const subs = await prisma.pushSubscription.findMany();
+    await sendToSubscriptions(subs, {
+      title: task.title,
+      body: 'Jetzt fällig',
+      tag: `task-${task.id}`,
+      url: '/',
+      ...(repeat ? { renotify: true } : {}),
+    });
+  } catch (err) {
+    console.error('push for fired trigger failed', err);
   }
 }

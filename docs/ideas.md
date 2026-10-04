@@ -15,12 +15,13 @@
 
 ## Matthias's ideas, 2026-10-02 (not thought through yet; decide after real use)
 
-- **Follow-up tasks** ("Wäsche waschen" → "Wäsche aufhängen"). Cheap version:
-  a one-off can *wait for* another task (`waitsForId`, optional offset "3 Tage
-  danach"); hidden or greyed ("wartet auf …") until the predecessor is done,
-  then it gets its due date. **Expensive** if the predecessor is recurring:
-  every completion would have to spawn a new follow-up, i.e. generated
-  instances, the thing ADR-0004 avoids. Lead's recommendation: one-off chains only.
+- **Follow-up tasks** ("Wäsche aufhängen" erledigt → "Wäsche abhängen" a day
+  later). **Superseded 2026-10-04 by ADR-0010:** becomes a second trigger
+  source, "after task X is done + delay", for a trigger task. The follow-up is
+  itself one persistent row that goes waiting → due, so a recurring or
+  triggered predecessor no longer means generated instances. Skip doesn't
+  fire it. Matthias wants it; next after the HA hook. Its delay is in days
+  until due times exist (below).
 - **When a task *can* be done** (e.g. Wertstoffhof must be open). Three levels:
   1. "frühestens ab" date: hidden (or under Später) until then; also covers
      seasonal chores. Very cheap.
@@ -63,3 +64,13 @@
 - **Promote stale "Irgendwann" tasks** into view if they rot (ADR-0005).
 - **Link to rezepte?** e.g. "Kühlschrank auswischen" — probably not; noted so
   nobody re-derives it.
+
+## From the Home Assistant discussion, 2026-10-04
+
+- **Due times** (Matthias: "Uhrzeit als Fälligkeit wäre schon gut"). Today a
+  due date is a calendar day (ADR-0004). A time makes "24 h later" exact and
+  lets a reminder push at that time. Touches sections, urgency, digest and the
+  sheet; needs its own ADR. Candidate after trigger tasks.
+- **HA beyond firing** (ADR-0010 "not now"): pass a title/note suffix
+  ("Trockner fertig, 2 h 10 min"); complete a task from HA (dryer door
+  opened); a read endpoint so an HA sensor shows "3 fällig".

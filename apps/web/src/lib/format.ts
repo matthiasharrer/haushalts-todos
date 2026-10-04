@@ -69,3 +69,30 @@ export function lastDoneLabel(
   const when = n <= 0 ? 'heute' : n === 1 ? 'gestern' : `vor ${n} Tagen`;
   return `zuletzt ${when} · ${last.by.displayName}`;
 }
+
+const berlinTime = new Intl.DateTimeFormat('de-DE', {
+  timeZone: 'Europe/Berlin',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+const berlinDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' });
+
+/** Trigger task state (ADR-0010): "wartet", "ausgelöst heute 14:32", "ausgelöst am 3.10.". */
+export function triggerLabel(
+  trigger: { firedAt: string | null },
+  dueDate: string | null,
+  today: string,
+): string {
+  if (dueDate === null) return 'wartet';
+  if (!trigger.firedAt) return dueDate === today ? 'ausgelöst heute' : `ausgelöst am ${dayMonth(dueDate)}`;
+  const at = new Date(trigger.firedAt);
+  const day = berlinDay.format(at);
+  return day === today ? `ausgelöst heute ${berlinTime.format(at)}` : `ausgelöst am ${dayMonth(day)}`;
+}
+
+/** "3.10." */
+function dayMonth(date: string): string {
+  const [, m, d] = date.split('-').map(Number);
+  return `${d}.${m}.`;
+}

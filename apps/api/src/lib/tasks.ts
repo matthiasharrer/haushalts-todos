@@ -7,7 +7,8 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { isValidDate, todayBerlin } from './dates.js';
 import { foldText } from './text.js';
 import { inSeason, nextDueDate, normalizeSeason, seasonDate, type Season } from './recurrence.js';
-import { pushAfterWrite, type Before } from './pushEvents.js';
+import { hashToken, newToken, verifyToken } from './hookToken.js';
+import { pushAfterWrite, pushFired, type Before } from './pushEvents.js';
 import { sectionOf, sortTasks, urgencyScore, type Section } from './urgency.js';
 
 export class TaskError extends Error {
@@ -38,6 +39,9 @@ const recurrence = z.object({
   season: z.object({ from: month, to: month }).nullish(),
 });
 
+// ADR-0010: sending { refire } makes it a trigger task; null (update only) turns it off.
+const trigger = z.object({ refire: z.enum(['PUSH', 'NONE']).default('PUSH') });
+
 export const createTaskSchema = z.object({
   title: z.string().trim().min(1).max(200),
   notes: z.string().max(5000).nullish(),
@@ -45,6 +49,7 @@ export const createTaskSchema = z.object({
   dueDate: dateStr.nullish(),
   recurrence: recurrence.nullish(),
   notify: z.boolean().optional(),
+  trigger: trigger.nullish(),
 });
 
 export const updateTaskSchema = z.object({
@@ -54,6 +59,7 @@ export const updateTaskSchema = z.object({
   dueDate: dateStr.nullable().optional(),
   recurrence: recurrence.nullable().optional(),
   notify: z.boolean().optional(),
+  trigger: trigger.nullable().optional(),
 });
 
 export const completeSchema = z.object({ date: dateStr.optional() });
@@ -92,6 +98,8 @@ export interface TaskDto {
   } | null;
   /** Push when it becomes due (ADR-0009). */
   notify: boolean;
+  /** Trigger task (ADR-0010) or null. Never carries the token or its hash. */
+  trigger: { refire: 'PUSH' | 'NONE'; hasToken: boolean; firedAt: string | null } | null;
   /** Derived (ADR-0008): seasonal, out of season today, and not due yet. */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -130,6 +138,9 @@ function toDto(t: TaskRow, today: string): TaskDto {
     dueDate: t.dueDate,
     recurrence: rec,
     notify: t.notify,
+    trigger: t.triggerRefire
+      ? { refire: t.triggerRefire, hasToken: t.hookTokenHash !== null, firedAt: t.firedAt?.toISOString() ?? null }
+      : null,
     resting: !!season && !inSeason(today, season) && t.dueDate !== null && t.dueDate > today,
     createdBy: t.createdBy,
     lastDone: last ? { date: last.date, by: last.user } : null,
@@ -170,7 +181,8 @@ function recurrenceColumns(r: z.infer<typeof recurrence> | null) {
 export async function listTasks(now: Date = new Date()) {
   const today = todayBerlin(now);
   const rows = await prisma.task.findMany({
-    where: { archivedAt: null, doneAt: null },
+    // A waiting trigger task (ADR-0010) has no date but isn't "Irgendwann": it's not on the home list at all.
+    where: { archivedAt: null, doneAt: null, OR: [{ triggerRefire: null }, { dueDate: { not: null } }] },
     include: taskInclude,
   });
   const dtos = rows.map((r) => toDto(r, today));
@@ -198,21 +210,34 @@ export async function listTasks(now: Date = new Date()) {
   };
 }
 
-/** ADR-0007: every active recurring task, by next due date (then id). */
+/**
+ * ADR-0007 / ADR-0010: every active recurring task by next due date (then id),
+ * followed by the trigger tasks: fired ones by date, then the waiting ones.
+ */
 export async function listRecurring(now: Date = new Date()) {
   const today = todayBerlin(now);
   const rows = await prisma.task.findMany({
-    where: { archivedAt: null, recurrenceEvery: { not: null } },
+    where: { archivedAt: null, OR: [{ recurrenceEvery: { not: null } }, { triggerRefire: { not: null } }] },
     include: taskInclude,
-    orderBy: [{ dueDate: 'asc' }, { id: 'asc' }],
   });
+  // Sorted here, not in SQL: SQLite sorts NULL (waiting) first.
+  const rank = (r: TaskRow) => (r.triggerRefire === null ? 0 : r.dueDate !== null ? 1 : 2);
+  rows.sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (a.dueDate ?? '').localeCompare(b.dueDate ?? '') ||
+      a.id - b.id,
+  );
   return { today, tasks: rows.map((r) => toDto(r, today)) };
 }
 
 export async function createTask(input: CreateTaskInput, actor: Actor): Promise<TaskDto> {
   const rec = input.recurrence ?? null;
-  // A recurring task always has a due date; default: today (TC-15).
-  let dueDate = input.dueDate ?? (rec ? todayBerlin() : null);
+  const trig = input.trigger ?? null;
+  if (trig && rec) throw new TaskError(400, 'A task cannot be both recurring and a trigger task');
+  // A recurring task always has a due date; default: today (TC-15). A trigger
+  // task is born waiting: a date sent along is ignored (ADR-0010).
+  let dueDate = trig ? null : (input.dueDate ?? (rec ? todayBerlin() : null));
   if (rec && dueDate) dueDate = seasonDate(dueDate, normalizeSeason(rec.season));
   const task = await prisma.task.create({
     data: {
@@ -222,6 +247,7 @@ export async function createTask(input: CreateTaskInput, actor: Actor): Promise<
       dueDate,
       ...recurrenceColumns(rec),
       notify: input.notify ?? false,
+      triggerRefire: trig?.refire ?? null,
       createdById: actor.userId,
       createdVia: actor.via,
     },
@@ -242,11 +268,25 @@ export async function updateTask(id: number, patch: UpdateTaskInput, actor: Acto
     if (patch.priority !== undefined) data.priority = patch.priority;
     if (patch.notify !== undefined) data.notify = patch.notify;
 
-    const willRecur =
-      patch.recurrence !== undefined
+    // ADR-0010: kinds are exclusive. Switching to a trigger clears the rule and
+    // the date (waiting); switching away drops the token. A recurrence sent for
+    // a task that stays a trigger is a 400; send trigger: null along to switch.
+    const willTrigger = patch.trigger !== undefined ? patch.trigger !== null : task.triggerRefire !== null;
+    if (willTrigger && patch.recurrence) {
+      throw new TaskError(400, 'A task cannot be both recurring and a trigger task');
+    }
+    const toTrigger = willTrigger && task.triggerRefire === null;
+    const fromTrigger = !willTrigger && task.triggerRefire !== null;
+    if (patch.trigger) data.triggerRefire = patch.trigger.refire;
+    if (fromTrigger) Object.assign(data, { triggerRefire: null, hookTokenHash: null, firedAt: null });
+    if (toTrigger) Object.assign(data, { firedAt: null }, recurrenceColumns(null));
+
+    const willRecur = willTrigger
+      ? false
+      : patch.recurrence !== undefined
         ? patch.recurrence !== null
         : task.recurrenceEvery !== null;
-    let dueDate = patch.dueDate !== undefined ? patch.dueDate : task.dueDate;
+    let dueDate = toTrigger ? null : patch.dueDate !== undefined ? patch.dueDate : task.dueDate;
     if (willRecur && dueDate === null) {
       if (patch.dueDate === null) throw new TaskError(400, 'A recurring task needs a dueDate');
       dueDate = todayBerlin(); // one-off without date turned into a recurring one
@@ -290,7 +330,7 @@ export async function updateTask(id: number, patch: UpdateTaskInput, actor: Acto
       dueDate = seasonDate(dueDate, season);
     }
     if (dueDate !== task.dueDate) data.dueDate = dueDate;
-    if (patch.recurrence !== undefined) Object.assign(data, recurrenceColumns(patch.recurrence));
+    if (patch.recurrence !== undefined && !toTrigger) Object.assign(data, recurrenceColumns(patch.recurrence));
 
     await tx.task.update({ where: { id }, data });
     return dtoById(tx, id);
@@ -312,9 +352,13 @@ async function record(
 
   return prisma.$transaction(async (tx) => {
     const task = await activeTask(tx, id);
+    const isTrigger = task.triggerRefire !== null;
+    if (isTrigger && task.dueDate === null) {
+      throw new TaskError(400, 'A waiting trigger task has nothing to do yet');
+    }
     const recurring =
-      task.recurrenceEvery && task.recurrenceUnit && task.recurrenceMode && task.dueDate;
-    if (!recurring && kind === 'SKIPPED') {
+      !isTrigger && task.recurrenceEvery && task.recurrenceUnit && task.recurrenceMode && task.dueDate;
+    if (!recurring && !isTrigger && kind === 'SKIPPED') {
       throw new TaskError(400, 'Only recurring tasks can be skipped');
     }
     if (!recurring && task.doneAt) throw new TaskError(409, 'Task is already done');
@@ -348,6 +392,9 @@ async function record(
           ),
         },
       });
+    } else if (isTrigger) {
+      // ADR-0010: back to waiting; never doneAt. Undo restores the fired date.
+      await tx.task.update({ where: { id }, data: { dueDate: null } });
     } else {
       await tx.task.update({ where: { id }, data: { doneAt: new Date() } });
     }
@@ -375,6 +422,53 @@ export async function undoTask(id: number): Promise<TaskDto> {
       data: { dueDate: last.dueDateBefore, doneAt: null },
     });
     return dtoById(tx, id);
+  });
+}
+
+export type FireResult = 'fired' | 'repushed' | 'ignored';
+
+/**
+ * ADR-0010: the trigger fired (Home Assistant). A waiting task becomes due
+ * today; one that is already fired keeps its date and, per its refire setting,
+ * pushes again or does nothing. 404 for anything that isn't an active trigger task.
+ */
+export async function fireTask(id: number, now: Date = new Date()): Promise<FireResult> {
+  const today = todayBerlin(now);
+  const task = await prisma.task.findFirst({ where: { id, archivedAt: null, triggerRefire: { not: null } } });
+  if (!task) throw new TaskError(404, 'Task not found');
+
+  // Conditional update, so two simultaneous fires of a waiting task are one "fired".
+  const woke = await prisma.task.updateMany({
+    where: { id, dueDate: null },
+    data: { dueDate: today, firedAt: now, notifiedFor: task.notify ? today : task.notifiedFor },
+  });
+  if (woke.count === 1) {
+    await pushFired(id, false);
+    return 'fired';
+  }
+  if (task.triggerRefire === 'NONE') return 'ignored';
+  await prisma.task.update({ where: { id }, data: { firedAt: now } });
+  await pushFired(id, true);
+  return 'repushed';
+}
+
+/** Does `token` belong to this active trigger task? The hook's only auth check. */
+export async function checkHookToken(id: number, token: string | null): Promise<boolean> {
+  const task = await prisma.task.findFirst({
+    where: { id, archivedAt: null, triggerRefire: { not: null } },
+    select: { hookTokenHash: true },
+  });
+  return verifyToken(token, task?.hookTokenHash);
+}
+
+/** Generates (or replaces) the task's hook token. The plain token is returned once, never stored. */
+export async function issueHookToken(id: number): Promise<string> {
+  return prisma.$transaction(async (tx) => {
+    const task = await activeTask(tx, id);
+    if (task.triggerRefire === null) throw new TaskError(400, 'Only trigger tasks have a hook token');
+    const token = newToken();
+    await tx.task.update({ where: { id }, data: { hookTokenHash: hashToken(token) } });
+    return token;
   });
 }
 

@@ -157,3 +157,34 @@ test('TC-60 digest on: only the digest, no single pushes', () => {
   const plan = planDaily(at('2026-10-10T06:00:00Z'), [user()], [task({ title: 'Waschmaschine', notify: true })]);
   assert.deepEqual(plan.pushes.map((p) => p.payload.tag), ['digest']);
 });
+
+// TC-79: trigger tasks (ADR-0010). A waiting one has dueDate null, so it is
+// not due and appears in neither the digest nor the single pushes.
+test('TC-79 a waiting trigger task is in neither the digest nor the single pushes', () => {
+  const waiting = task({ id: 701, title: 'Wäsche aufhängen', notify: true, dueDate: null });
+  const other = task({ id: 702, title: 'Müll', notify: true });
+
+  const digest = planDaily(at('2026-10-10T06:00:00Z'), [user()], [waiting, other]);
+  assert.equal(digest.pushes.length, 1);
+  assert.equal(digest.pushes[0].payload.title, '1 Aufgabe fällig');
+  assert.equal(digest.pushes[0].payload.body, 'Müll');
+
+  const singles = planDaily(at('2026-10-10T06:00:00Z'), [user({ digestEnabled: false })], [waiting, other]);
+  assert.deepEqual(singles.pushes.map((p) => p.payload.tag), ['task-702']);
+
+  // alone: nothing at all, but the run still counts
+  const alone = planDaily(at('2026-10-10T06:00:00Z'), [user()], [waiting]);
+  assert.deepEqual(alone.pushes, []);
+  assert.deepEqual(alone.ranUsers, [1]);
+});
+
+test('TC-79 a fired trigger task (due today) counts like any task due today', () => {
+  const fired = task({ id: 703, title: 'Wäsche aufhängen', notify: true });
+  const digest = planDaily(at('2026-10-10T06:00:00Z'), [user()], [fired]);
+  assert.equal(digest.pushes[0].payload.body, 'Wäsche aufhängen');
+  const singles = planDaily(at('2026-10-10T06:00:00Z'), [user({ digestEnabled: false })], [fired]);
+  assert.deepEqual(singles.pushes.map((p) => p.payload.tag), ['task-703']);
+  // the fire itself already pushed (notifiedFor), so no second single push
+  const pushed = task({ id: 704, notify: true, notifiedFor: DAY });
+  assert.deepEqual(planDaily(at('2026-10-10T06:00:00Z'), [user({ digestEnabled: false })], [pushed]).pushes, []);
+});

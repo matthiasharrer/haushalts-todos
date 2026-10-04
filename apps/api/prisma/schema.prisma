@@ -53,6 +53,11 @@ enum RecurrenceMode {
   FIXED
 }
 
+enum TriggerRefire {
+  PUSH
+  NONE
+}
+
 enum CompletionKind {
   DONE
   SKIPPED
@@ -74,6 +79,11 @@ model Task {
   /// Push when it becomes due (ADR-0009); notifiedFor = the dueDate already pushed for.
   notify          Boolean         @default(false)
   notifiedFor     String?
+  /// Trigger task (ADR-0010): non-null marks the kind. Waiting = dueDate null,
+  /// fired = dueDate set. hookTokenHash = sha256 of the HA bearer token.
+  triggerRefire   TriggerRefire?
+  hookTokenHash   String?
+  firedAt         DateTime?
   doneAt          DateTime?
   archivedAt      DateTime?
   createdById     Int

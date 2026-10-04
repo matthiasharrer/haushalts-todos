@@ -25,6 +25,7 @@ export default defineConfig({
       // (DEV_REMOTE_USER/_NAME/_EMAIL/_GROUPS); an empty string removes the
       // header entirely (reproduces the "no identity" -> 401 state). Whatever
       // the browser sent is overwritten, mirroring Traefik.
+      '/hooks': { target: 'http://localhost:3001', xfwd: true }, // ADR-0010: no identity headers, own bearer token
       '/api': {
         target: 'http://localhost:3001',
         xfwd: true,

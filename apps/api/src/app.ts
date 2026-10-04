@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { identity, type AppEnv } from './identity.js';
+import { hooks } from './routes/hooks.js';
 import { me } from './routes/me.js';
 import { push } from './routes/push.js';
 import { recurring } from './routes/recurring.js';
@@ -27,6 +28,10 @@ app.onError((err, c) => {
   console.error(err);
   return c.json({ error: 'Internal server error' }, 500);
 });
+
+// Trigger-task hook (ADR-0010): outside /api, so no Remote-User; its own bearer
+// token. Before mountStatic, like MCP below.
+app.route('/hooks', hooks);
 
 // MCP (ADR-0006): /mcp, /mcp/register, /mcp/token and /.well-known/* are
 // exempt from Authelia at the ingress (bearer auth instead); /oauth/authorize
