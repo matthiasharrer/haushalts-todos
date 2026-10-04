@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import type { AppEnv } from '../identity.js';
-import { getVapid, sendToSubscriptions } from '../lib/push.js';
+import { describeFailure, getVapid, sendToSubscriptions } from '../lib/push.js';
 
 export const push = new Hono<AppEnv>();
 
@@ -69,11 +69,13 @@ push.post('/test', async (c) => {
   const { endpoint } = await body(c, endpointSchema);
   const sub = await prisma.pushSubscription.findFirst({ where: { endpoint, userId: c.get('user').id } });
   if (!sub) return c.json({ error: 'Subscription not found' }, 404);
-  await sendToSubscriptions([sub], {
+  const [failure] = await sendToSubscriptions([sub], {
     title: 'Test-Benachrichtigung',
     body: 'Push funktioniert.',
     tag: 'test',
     url: '/',
   });
+  // The one push the user waits for: say what went wrong instead of a silent 204.
+  if (failure) return c.json({ error: 'Push failed', message: describeFailure(failure) }, 502);
   return c.body(null, 204);
 });

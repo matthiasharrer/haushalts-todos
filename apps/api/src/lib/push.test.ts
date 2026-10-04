@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { outboxTransport, sendToSubscriptions, type PushPayload, type PushSub, type SenderDeps } from './push.js';
+import { describeFailure, outboxTransport, sendToSubscriptions, type PushPayload, type PushSub, type SenderDeps } from './push.js';
 
 const payload: PushPayload = { title: 'T', body: 'B', tag: 'x', url: '/' };
 const sub = (id: number): PushSub => ({ id, endpoint: `https://push.example.invalid/${id}`, p256dh: 'p', auth: 'a' });
@@ -56,4 +56,21 @@ test('the outbox transport appends one JSON line per send and needs no valid key
   const lines = fs.readFileSync(file, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
   assert.deepEqual(lines[0], { endpoint: sub(1).endpoint, payload });
   assert.equal(lines[1].payload.tag, 'y');
+});
+
+test('TC-61 failures are returned for the caller: status, or the network code', async () => {
+  const h = harness({ 1: 410, 2: 500 });
+  h.deps.transport = async (s) => {
+    if (s.id === 3) throw Object.assign(new AggregateError([], ''), { code: 'ETIMEDOUT' });
+    if (s.id in { 1: 1, 2: 1 }) throw Object.assign(new Error('boom'), { statusCode: s.id === 1 ? 410 : 500 });
+  };
+  const failures = await sendToSubscriptions([sub(1), sub(2), sub(3), sub(4)], payload, h.deps);
+  assert.deepEqual(failures, [
+    { subId: 1, status: 410, code: undefined },
+    { subId: 2, status: 500, code: undefined },
+    { subId: 3, status: undefined, code: 'ETIMEDOUT' },
+  ]);
+  assert.match(describeFailure(failures[0]), /nicht mehr angemeldet/);
+  assert.match(describeFailure(failures[1]), /HTTP 500/);
+  assert.match(describeFailure(failures[2]), /nicht erreichbar \(ETIMEDOUT\)/);
 });

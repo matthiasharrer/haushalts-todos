@@ -26,6 +26,16 @@ export interface Season {
   to: number;
 }
 
+export type Refire = 'PUSH' | 'NONE';
+
+/** Trigger task (ADR-0010): waiting while dueDate is null, fired otherwise. */
+export interface Trigger {
+  refire: Refire;
+  hasToken: boolean;
+  /** ISO instant of the last fire. */
+  firedAt: string | null;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -35,6 +45,7 @@ export interface Task {
   recurrence: Recurrence | null;
   /** Push when it becomes due (ADR-0009). */
   notify: boolean;
+  trigger: Trigger | null;
   /** Seasonal chore out of season and not due yet (ADR-0008). */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -55,6 +66,8 @@ export interface TaskPatch {
   dueDate?: string | null;
   recurrence?: Recurrence | null;
   notify?: boolean;
+  /** Send { refire } to make it a trigger task; null turns that off. */
+  trigger?: { refire: Refire } | null;
 }
 
 /** An API failure with a message that is safe to show to the user. */
@@ -87,7 +100,11 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError(0, germanMessage(0));
   }
-  if (!res.ok) throw new ApiError(res.status, germanMessage(res.status));
+  if (!res.ok) {
+    // A server that knows better (e.g. the test push) sends a German `message`.
+    const detail = await res.json().then((b) => (typeof b?.message === 'string' ? b.message : null), () => null);
+    throw new ApiError(res.status, detail ?? germanMessage(res.status));
+  }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
@@ -110,6 +127,9 @@ export const completeTask = (id: number, date?: string) =>
   request<Task>('POST', `/api/tasks/${id}/complete`, date ? { date } : undefined);
 export const skipTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/skip`);
 export const undoTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/undo`);
+/** Generates or replaces the trigger task's token; the only time it is ever returned. */
+export const issueHookToken = (id: number) =>
+  request<{ token: string; url: string }>('POST', `/api/tasks/${id}/hook-token`);
 export const deleteTask = (id: number) => request<void>('DELETE', `/api/tasks/${id}`);
 
 export interface McpConfig {

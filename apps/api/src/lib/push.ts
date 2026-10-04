@@ -12,6 +12,8 @@ export interface PushPayload {
   tag: string;
   /** Where a tap on the notification goes. */
   url: string;
+  /** Alert again although a notification with this tag is already shown (needs a tag). */
+  renotify?: boolean;
 }
 
 export interface PushSub {
@@ -108,22 +110,42 @@ async function defaultDeps(): Promise<SenderDeps> {
   };
 }
 
+/** One device that didn't get the push: the push service's HTTP status, or the network error code. */
+export interface SendFailure {
+  subId: number;
+  status?: number;
+  code?: string;
+}
+
+/** German explanation of a failure, for "Test senden" (the only caller who waits for the answer). */
+export function describeFailure(f: SendFailure): string {
+  if (f.status === 404 || f.status === 410) {
+    return 'Dieses Gerät ist beim Push-Dienst nicht mehr angemeldet. Schalte „Auf diesem Gerät“ aus und wieder ein.';
+  }
+  if (f.status) return `Der Push-Dienst hat abgelehnt (HTTP ${f.status}).`;
+  return `Push-Dienst nicht erreichbar${f.code ? ` (${f.code})` : ''}. Darf der Server ins Internet (fcm.googleapis.com:443)?`;
+}
+
 /**
  * Best effort, never throws: one failing device doesn't stop the others.
  * 404/410 deletes the subscription; any other error is logged and the row kept.
+ * Returns the failures, so a caller that waits (the test push) can report them.
  */
 export async function sendToSubscriptions(
   subs: PushSub[],
   payload: PushPayload,
   deps?: SenderDeps,
-): Promise<void> {
-  if (subs.length === 0) return;
+): Promise<SendFailure[]> {
+  const failures: SendFailure[] = [];
+  if (subs.length === 0) return failures;
   const d = deps ?? (await defaultDeps());
   for (const sub of subs) {
     try {
       await d.transport(sub, payload);
     } catch (err) {
       const status = (err as { statusCode?: number } | null)?.statusCode;
+      const code = (err as { code?: unknown } | null)?.code;
+      failures.push({ subId: sub.id, status, code: typeof code === 'string' ? code : undefined });
       try {
         if (status === 404 || status === 410) {
           await d.onGone(sub);
@@ -141,4 +163,5 @@ export async function sendToSubscriptions(
       d.log(`recording push success for subscription ${sub.id} failed`, err);
     }
   }
+  return failures;
 }
