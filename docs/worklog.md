@@ -3,7 +3,7 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
-## 2026-10-03 — Seasonal chores (ADR-0008)
+## 2026-10-03/04 — Seasonal chores (ADR-0008), `v0.2.0`
 
 Matthias asked for seasonal recurring chores ("Rasenmähen nur im Sommer").
 Product calls (his): **whole months**, **an overdue chore stays due past its
@@ -16,10 +16,15 @@ Built by a Sonnet subagent against TC-50…56; the lead reviewed and ran the sui
 - **Review catch:** the web sheet always resends `dueDate` + `recurrence`, so
   "snap when the field is in the patch" would have moved an overdue chore just
   by renaming it. Update now snaps only when the date or season *changes*.
-- Accepted gap (in the ADR): removing a season doesn't pull a resting chore's
-  date back from the 1st of its start month. Edit the date by hand.
-- Not deployed/tagged; release is Matthias's call. Dev: rezepte was on :5173,
-  so Haushalt ran on :5174 this session.
+- 2026-10-04, at Matthias's request: changing or removing the season of a
+  *resting* chore now recomputes its date from the latest completion with the
+  normal rule, at the earliest today (TC-57). A hand-set date wins. My first
+  TC-57 text had wrong arithmetic (3 days ago + 7 ≠ past); the implementer
+  flagged it instead of bending the test, which is how it should go.
+- **Released `v0.2.0`** (Matthias's go, 2026-10-04). The migration
+  `seasonal_chores` is applied by the container entrypoint
+  (`prisma migrate deploy`). Dev: rezepte was on :5173, so Haushalt ran on
+  :5174 this session.
 
 ## 2026-10-02 (later) — MVP built in one session, `v0.1.0` tagged
 

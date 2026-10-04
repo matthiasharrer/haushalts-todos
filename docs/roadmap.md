@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-02 (`v0.1.0` tagged; next: first deploy, Matthias's side)_
+_Last updated: 2026-10-04 (`v0.2.0` tagged: seasonal chores, ADR-0008; next: deploy, Matthias's side)_
 
 ## Next — MVP: usable on both phones
 
