@@ -5,19 +5,17 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-04 (`v0.2.0` tagged: seasonal chores, ADR-0008; next: deploy, Matthias's side)_
+_Last updated: 2026-10-04 (`v0.2.0` tagged: seasonal chores, ADR-0008; first deploy of `v0.1.0` done; next: deploy `v0.2.0`, Matthias's side)_
 
-## Next — MVP: usable on both phones
+## Next — MVP in real use
 
-The goal of the MVP is to **use it for real** for a few weeks before building
-more. Order matters: deploy as soon as the list is usable, add MCP after.
+The MVP is deployed. **Use it for real** for a few weeks before building
+more.
 
-- [ ] **4. First deploy** (MCP is built, so it ships with it). **`v0.1.0` is tagged**
-      (2026-10-02); CI builds `ghcr.io/matthiasharrer/haushalts-todos:v0.1.0`. **Matthias's side (GitOps repo):** deployment (`strategy:
-      Recreate`, single replica: SQLite), PVC at `/data`, secret `MCP_TOKEN`
-      (random, ≥ 32 chars), ingress with Authelia **except** `/mcp` and
-      `/.well-known/` (same as rezepte), an Authelia account + access rule for
-      his wife. Then: connect Claude once per person and run TC-44/45 for real.
+- [ ] **Deploy `v0.2.0`** (seasonal chores, ADR-0008): bump the image tag in
+      the GitOps repo; the migration runs on container start. Matthias's side.
+- [ ] **MCP against the real ingress:** connect Claude once per person and run
+      TC-44/45 for real (unverified so far; skip if already done).
 
 ## After the MVP
 
