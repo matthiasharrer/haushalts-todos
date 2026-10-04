@@ -10,6 +10,8 @@ import {
   MCP_TOKEN,
   DATABASE_URL,
   PORT,
+  PUSH_OUTBOX,
+  PUSH_TICK_MS,
   REPORT_DIR,
   SERVER_ENTRY,
   TEST_RESULTS_DIR,
@@ -40,6 +42,6 @@ export default defineConfig({
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { DATABASE_URL, PORT: String(PORT), WEB_DIST, MCP_TOKEN },
+    env: { DATABASE_URL, PORT: String(PORT), WEB_DIST, MCP_TOKEN, PUSH_OUTBOX, PUSH_TICK_MS: String(PUSH_TICK_MS) },
   },
 });

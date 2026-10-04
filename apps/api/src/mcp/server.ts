@@ -121,6 +121,10 @@ const recurrenceSchema = z
   })
   .describe('Wiederholung. Weglassen für eine einmalige Aufgabe.');
 
+const notifySchema = z
+  .boolean()
+  .describe('Push-Benachrichtigung an alle, sobald die Aufgabe fällig ist (für Zeitkritisches wie die Waschmaschine).');
+
 const dateDescription = 'Kalendertag als JJJJ-MM-TT (Europe/Berlin).';
 
 export function buildMcpServer(): McpServer {
@@ -223,6 +227,7 @@ export function buildMcpServer(): McpServer {
         priority: prioritySchema.optional(),
         due_date: z.string().optional().describe(`Fälligkeitsdatum. ${dateDescription} Weglassen = kein Datum.`),
         recurrence: recurrenceSchema.optional(),
+        notify: notifySchema.optional(),
       }),
     },
     async (args, ctx) =>
@@ -234,6 +239,7 @@ export function buildMcpServer(): McpServer {
           priority: args.priority,
           dueDate: args.due_date,
           recurrence: args.recurrence,
+          notify: args.notify,
         });
         return taskForModel(await createTask(input, actor), todayBerlin());
       }),
@@ -255,18 +261,21 @@ export function buildMcpServer(): McpServer {
         priority: prioritySchema.optional(),
         due_date: z.string().nullable().optional().describe(`Neues Fälligkeitsdatum. ${dateDescription} null entfernt es.`),
         recurrence: recurrenceSchema.nullable().optional().describe('Neue Wiederholung; null macht die Aufgabe einmalig.'),
+        notify: notifySchema.optional(),
       }),
     },
-    async ({ id, ...rest }) =>
+    async ({ id, ...rest }, ctx) =>
       run(async () => {
+        const actor = actorFrom(ctx);
         const patch = parse(updateTaskSchema, {
           title: rest.title,
           notes: rest.notes,
           priority: rest.priority,
           dueDate: rest.due_date,
           recurrence: rest.recurrence,
+          notify: rest.notify,
         });
-        return taskForModel(await updateTask(id, patch), todayBerlin());
+        return taskForModel(await updateTask(id, patch, actor), todayBerlin());
       }),
   );
 

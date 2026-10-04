@@ -533,10 +533,21 @@ dialog.sheet[open] {
   align-items: flex-start;
   padding: 0.5rem 0;
 }
-.radio-row small {
+.radio-row small,
+.switch-row small {
   display: block;
   font-size: 0.8125rem;
   color: var(--muted);
+}
+.switch-row small {
+  display: block;
+}
+.sub > .bell {
+  display: inline-flex;
+  vertical-align: -2px;
+}
+.sub > .bell::after {
+  content: none;
 }
 .repeat-box {
   display: flex;
@@ -774,4 +785,32 @@ dialog.confirm p {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
+}
+
+/* ---- notifications card (settings) ---- */
+.card .switch-row + .switch-row,
+.card .switch-row + .time-row {
+  border-top: 1px solid var(--border);
+}
+.time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: var(--tap);
+}
+.time-row input {
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+.card .notif-actions {
+  margin: 0.25rem 0 0.5rem;
+}
+.card + .card {
+  margin-top: 0.75rem;
 }

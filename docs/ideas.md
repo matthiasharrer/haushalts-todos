@@ -6,10 +6,6 @@
 
 ## Deferred on purpose (bootstrap, 2026-10-02)
 
-- **PWA push reminders.** Matthias: interesting, but only once the app has
-  proven useful. Precondition: the PWA install/offline groundwork from
-  rezepte (its ADR-0017) ported over. Likely shape: one daily digest
-  ("3 Aufgaben fällig") rather than a push per task.
 - **Assigned / personal tasks.** "Mostly shared, maybe optional assignment
   later." The `User` table (ADR-0003) already makes this a nullable
   `assigneeId` plus a "Meine" filter.
@@ -44,6 +40,11 @@
   or the default after use.
 
 ## Maybe later
+
+- **"Erledigt" button in the notification** (Android supports actions). The
+  service worker would call the API through Authelia; an expired session
+  means a 302 it must handle (ADR-0009).
+- **Notification opens the task**, not just home (deep link to the sheet).
 
 - **Who does how much** — completion stats per person over time. The data is
   there from day one (Completion log). Handle with care: it's a household, not a

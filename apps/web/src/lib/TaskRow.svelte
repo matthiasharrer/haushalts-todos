@@ -25,12 +25,13 @@
   </button>
   <button type="button" class="task-body" aria-label={`Bearbeiten: ${task.title}`} onclick={onedit}>
     <span class="title">{task.title}</span>
-    {#if task.priority === 'HIGH' || due || rec || last}
+    {#if task.priority === 'HIGH' || due || rec || last || task.notify}
       <span class="sub">
         {#if task.priority === 'HIGH'}<span class="badge">wichtig</span>{/if}
         {#if due}<span class="due" class:overdue>{due}</span>{/if}
         {#if rec}<span>{rec}{task.recurrence?.mode === 'FIXED' ? ' · fest' : ''}</span>{/if}
         {#if last}<span>{last}</span>{/if}
+        {#if task.notify}<span class="bell" role="img" aria-label="benachrichtigt"><Icon name="bell" size={13} /></span>{/if}
       </span>
     {/if}
   </button>

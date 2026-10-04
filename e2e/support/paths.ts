@@ -25,3 +25,8 @@ export const SERVER_ENTRY = path.join(ROOT, 'apps/api/dist/index.js');
 // secret that signs the OAuth codes/tokens, never a bearer (ADR-0006);
 // tc43 sends it as one to prove it is rejected.
 export const MCP_TOKEN = 'e2e-test-mcp-token';
+
+// Push (ADR-0009): the server appends every would-be push as a JSON line here
+// instead of sending (truncated in prepare.ts), and ticks fast.
+export const PUSH_OUTBOX = path.join(E2E_DIR, 'push-outbox.jsonl');
+export const PUSH_TICK_MS = 500;

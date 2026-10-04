@@ -28,6 +28,12 @@ model User {
   tasks       Task[]
   completions Completion[]
   mcpClients  McpClient[]
+  pushSubscriptions PushSubscription[]
+  /// Push (ADR-0009): daily digest on/off, local time "HH:MM" (Europe/Berlin),
+  /// and the Berlin date the daily run last happened for this user.
+  digestEnabled Boolean @default(true)
+  notifyTime    String  @default("08:00")
+  notifyRunOn   String?
 }
 
 enum Priority {
@@ -65,6 +71,9 @@ model Task {
   recurrenceMode  RecurrenceMode?
   seasonFrom      Int?
   seasonTo        Int?
+  /// Push when it becomes due (ADR-0009); notifiedFor = the dueDate already pushed for.
+  notify          Boolean         @default(false)
+  notifiedFor     String?
   doneAt          DateTime?
   archivedAt      DateTime?
   createdById     Int
@@ -106,6 +115,27 @@ model McpClient {
   user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime  @default(now())
   lastUsedAt   DateTime? // bumped when a token is issued/refreshed
+
+  @@index([userId])
+}
+
+/// Small key/value store for server-generated settings (ADR-0009: the VAPID key pair under "vapid").
+model AppSetting {
+  key   String @id
+  value String
+}
+
+/// One browser/device that can receive Web Push (ADR-0009). Subscribing an
+/// existing endpoint reassigns it. A 404/410 from the push service deletes it.
+model PushSubscription {
+  id            Int       @id @default(autoincrement())
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
 
   @@index([userId])
 }

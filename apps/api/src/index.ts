@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 import { initDb, prisma } from './db.js';
+import { startNotifyTicker } from './lib/notifyTick.js';
 
 const port = Number(process.env.PORT ?? 3001);
 
@@ -9,6 +10,8 @@ await initDb();
 const server = serve({ fetch: app.fetch, port }, (info) => {
   console.log(`API listening on http://localhost:${info.port}`);
 });
+
+startNotifyTicker();
 
 // PID 1 in the container ignores SIGTERM without a handler; also lets SQLite
 // checkpoint its WAL on shutdown.

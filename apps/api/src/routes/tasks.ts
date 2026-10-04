@@ -61,7 +61,7 @@ tasks.post('/', async (c) => c.json(await createTask(await body(c, createTaskSch
 
 tasks.patch('/:id', async (c) => {
   const id = taskId(c);
-  return c.json(await updateTask(id, await body(c, updateTaskSchema)));
+  return c.json(await updateTask(id, await body(c, updateTaskSchema), actor(c)));
 });
 
 tasks.post('/:id/complete', async (c) => {

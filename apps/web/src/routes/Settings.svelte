@@ -2,13 +2,24 @@
   import Spinner from '../lib/Spinner.svelte';
   import {
     getMcpConfig,
+    getMe,
+    patchMe,
     listMcpClients,
     messageOf,
     renameMcpClient,
     revokeMcpClient,
     type McpClient,
     type McpConfig,
+    type Me,
   } from '../lib/api';
+  import {
+    currentSubscription,
+    pushPermission,
+    pushSupported,
+    sendTestPush,
+    subscribeThisDevice,
+    unsubscribeThisDevice,
+  } from '../lib/push';
   import ConfirmDialog from '../lib/ConfirmDialog.svelte';
   import { showToast } from '../lib/store.svelte';
 
@@ -78,11 +89,134 @@
     await load();
   }
 
+  // ---- Benachrichtigungen (ADR-0009) ----
+  const supported = pushSupported();
+  let me = $state<Me | null>(null);
+  let permission = $state<NotificationPermission>(pushPermission());
+  let deviceOn = $state(false);
+  let deviceBusy = $state(false);
+  let testing = $state(false);
+
+  async function loadNotifications() {
+    try {
+      me = await getMe();
+    } catch (e) {
+      showToast(messageOf(e), { error: true });
+    }
+    if (supported) {
+      try {
+        deviceOn = pushPermission() === 'granted' && (await currentSubscription()) !== null;
+      } catch {
+        deviceOn = false;
+      }
+    }
+  }
+  loadNotifications();
+
+  async function toggleDevice(on: boolean) {
+    deviceBusy = true;
+    try {
+      if (on) {
+        await subscribeThisDevice();
+        deviceOn = true;
+      } else {
+        await unsubscribeThisDevice();
+        deviceOn = false;
+      }
+    } catch (e) {
+      deviceOn = !on;
+      if (!(e instanceof Error && e.message === 'permission-denied')) {
+        showToast(messageOf(e), { error: true });
+      }
+    } finally {
+      permission = pushPermission();
+      deviceBusy = false;
+    }
+  }
+
+  async function test() {
+    testing = true;
+    try {
+      await sendTestPush();
+      showToast('Test gesendet');
+    } catch (e) {
+      showToast(messageOf(e), { error: true });
+    } finally {
+      testing = false;
+    }
+  }
+
+  async function savePrefs(patch: { digestEnabled?: boolean; notifyTime?: string }) {
+    try {
+      me = await patchMe(patch);
+    } catch (e) {
+      showToast(messageOf(e), { error: true });
+      me = await getMe().catch(() => me); // snap the controls back to the server's truth
+    }
+  }
+
   const date = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' });
   const dateTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 </script>
 
 <div class="settings">
+  <section aria-labelledby="notif-title">
+    <h2 id="notif-title">Benachrichtigungen</h2>
+    <div class="card">
+      {#if !supported}
+        <p class="hint">
+          Dieser Browser kann keine Push-Nachrichten empfangen. Auf dem Android-Handy geht es in
+          Chrome; auf dem iPhone muss die App erst zum Home-Bildschirm hinzugefügt werden.
+        </p>
+      {:else}
+        <label class="switch-row">
+          <input
+            type="checkbox"
+            checked={deviceOn}
+            disabled={deviceBusy || permission === 'denied'}
+            onchange={(e) => toggleDevice(e.currentTarget.checked)}
+          />
+          <span>Auf diesem Gerät</span>
+        </label>
+        {#if permission === 'denied'}
+          <p class="hint">
+            Benachrichtigungen sind für diese Seite blockiert. In Chrome: Schloss-Symbol neben der
+            Adresse → Berechtigungen (Website-Einstellungen) → Benachrichtigungen → Zulassen. Danach
+            diese Seite neu laden.
+          </p>
+        {:else if deviceOn}
+          <div class="notif-actions">
+            <button type="button" class="btn" disabled={testing} onclick={test}>Test senden</button>
+          </div>
+        {/if}
+      {/if}
+      {#if me}
+        <label class="switch-row">
+          <input
+            type="checkbox"
+            checked={me.digestEnabled}
+            onchange={(e) => savePrefs({ digestEnabled: e.currentTarget.checked })}
+          />
+          <span>Tägliche Übersicht</span>
+        </label>
+        <div class="time-row">
+          <label for="notify-time">Uhrzeit</label>
+          <input
+            id="notify-time"
+            type="time"
+            required
+            value={me.notifyTime}
+            onchange={(e) => e.currentTarget.value && savePrefs({ notifyTime: e.currentTarget.value })}
+          />
+        </div>
+        <p class="hint">
+          Um diese Uhrzeit kommt die Übersicht. Ist sie aus, kommen nur Aufgaben mit Glocke.
+          Gilt für alle deine Geräte.
+        </p>
+      {/if}
+    </div>
+  </section>
+
   <section aria-labelledby="mcp-title">
     <h2 id="mcp-title">Claude verbinden</h2>
     {#if !loaded}

@@ -23,6 +23,14 @@ registration, no passwords.
 | `username`    | `Remote-User`, unique — the stable key        |
 | `displayName` | `Remote-Name`, refreshed on every request     |
 | `email`       | `Remote-Email`, optional                      |
+| `digestEnabled` | Push (ADR-0009): daily overview on/off. Default on. |
+| `notifyTime`  | `HH:MM` (Europe/Berlin) of the daily run. Default `08:00`. Changing it re-arms today's run. |
+| `notifyRunOn` | Berlin date the daily run last happened for this user; server-managed, never exposed. |
+
+A user's **push subscriptions** (`PushSubscription`: `endpoint` unique,
+`p256dh`, `auth`, `lastSuccessAt`) are their devices; one device belongs to one
+user at a time. `AppSetting` is a key/value table; today it only holds the VAPID
+key pair (`vapid`).
 
 ### Task
 
@@ -38,6 +46,8 @@ forward each time it's completed (ADR-0004).
 | `dueDate`    | Calendar date `YYYY-MM-DD` (Europe/Berlin), nullable. One-off: the deadline, or null = "irgendwann". Recurring: the **next** due date, always set. |
 | `recurrence` | Null for one-off tasks. Otherwise `{ every, unit, mode }` — see below. |
 | `doneAt`     | One-off only: set when ticked off; the task leaves the active list. Recurring tasks never get `doneAt`. |
+| `notify`     | Push everyone (but the actor) when the task becomes due (ADR-0009). Default false. |
+| `notifiedFor`| The `dueDate` this task has already pushed for; server-managed, makes "due now" fire once per date. |
 | `archivedAt` | Soft delete / "nicht mehr relevant" for either kind. |
 | `createdById`, `createdVia` | Who and through which channel (`web`, `mcp:<client>`). |
 

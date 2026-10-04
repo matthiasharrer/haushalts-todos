@@ -30,7 +30,7 @@ these headers are trustworthy behind the ingress. `apps/api/src/identity.ts`
 - otherwise it upserts `User` by `username` (writing only when name or email
   changed) and sets `c.get('user')`.
 
-`GET /api/me` returns `{ id, username, displayName, email }`.
+`GET /api/me` returns `{ id, username, displayName, email, digestEnabled, notifyTime }`; `PATCH /api/me` sets the last two (ADR-0009).
 
 **Dev:** the Vite proxy (`:5174` → `:3001`) overwrites the `Remote-*` headers
 with fakes (`DEV_REMOTE_USER` etc.; an empty value removes the header).
@@ -71,9 +71,33 @@ to the caller).
 Prisma 7, `prisma-client` generator into `apps/api/src/generated/prisma`
 (gitignored), better-sqlite3 driver adapter, WAL on at runtime (`src/db.ts`).
 
-Schema: `User`, `Task`, `Completion`, `McpClient` (`userId` bound at consent, cascade on user delete) (as in `domain-model.md`), with Prisma
+Schema: `User`, `Task`, `Completion`, `McpClient` (`userId` bound at consent, cascade on user delete), `PushSubscription` (cascade on user delete), `AppSetting` (key/value; the VAPID pair) (as in `domain-model.md`), with Prisma
 enums for priority, unit, mode and completion kind. Dates are `YYYY-MM-DD`
 strings (Europe/Berlin); `doneAt`/`archivedAt`/`Completion.at` are timestamps.
+
+## Push notifications and the PWA shell (ADR-0009)
+
+| Piece | File | Notes |
+| ----- | ---- | ----- |
+| Sender | `lib/push.ts` | VAPID pair generated lazily into `AppSetting` `vapid` (subject `PUBLIC_URL` or `mailto:haushalt@example.invalid`). `sendToSubscriptions(subs, payload, deps?)`: 404/410 deletes the row, other errors are logged and the row kept, one failure never stops the rest, success sets `lastSuccessAt`. DB-free when `deps` are injected (unit test). Transport: `web-push`, or when `PUSH_OUTBOX` is set one JSON line `{endpoint, payload}` per send appended to that file and nothing sent (e2e). Payload `{title, body, tag, url}`. |
+| Planner | `lib/notifications.ts` | Pure `planDaily(now, users, tasks)`: per user at or after `notifyTime` (Berlin) and not yet run today: digest ("N Aufgaben fällig", Fällig section in order, 5 titles + "und N weitere") or, digest off, one push per `notify` task due today with `notifiedFor` unset. Returns pushes, users to mark `notifyRunOn`, tasks to mark `notifiedFor`. |
+| Tick | `lib/notifyTick.ts` | Loads, plans, records (before sending), sends. Started from `index.ts` with `setInterval` (`PUSH_TICK_MS`, default 60000) and once 5 s after boot; never in unit tests. |
+| Events | `lib/pushEvents.ts` | Called by `lib/tasks.ts` after create/update commits; catches and logs everything. New one-off → others; `notify` task due today → others, claimed through `notifiedFor` (and replaces the "new" push). Complete, skip, undo never push. |
+| Routes | `routes/push.ts` | `GET /api/push/config` → `{publicKey}`; `POST /api/push/subscriptions` (upsert by endpoint, reassigns to the caller) → 201; `DELETE /api/push/subscriptions` `{endpoint}` (caller's only) → 204; `POST /api/push/test` `{endpoint}` → 204, 404 if not the caller's. |
+
+Egress: the pod must reach the push services (`fcm.googleapis.com` etc.) over HTTPS.
+
+**PWA shell** (`apps/web/public/`): `manifest.webmanifest` (standalone, theme
+`#2f6f5e`), PNG icons rasterized from `icon.svg` (`icon-192.png`, `icon-512.png`,
+`maskable-icon-512.png` with a safe zone, `apple-touch-icon.png`) and `sw.js`.
+The worker handles only `push` (show the notification) and `notificationclick`
+(focus an open window and navigate it, else open one). **No `fetch` handler and
+no caching**, so nothing can go stale behind Authelia. `main.ts` registers it;
+`static.ts`'s catch-all serves `/sw.js` and the manifest with
+`Cache-Control: no-cache`. Web helpers in `lib/push.ts` (support check,
+permission, subscribe with the VAPID key, unsubscribe, test); the UI is the
+"Benachrichtigungen" card in Settings and the "Benachrichtigen, wenn fällig"
+switch in the task sheet (bell icon on rows with `notify`).
 
 ## Task logic: three layers
 
@@ -89,8 +113,8 @@ Endpoints (all behind identity):
 | ------ | ---- | ---- |
 | GET    | `/api/tasks` | `{ today, sections: { faellig, demnaechst, spaeter, irgendwann } }`, sorted; excludes archived and done one-offs, and recurring tasks from `spaeter` (ADR-0007) |
 | GET    | `/api/recurring` | `{ today, tasks }`: all active recurring tasks by `dueDate`, then id. The DTO's `section` is still the raw derived one (a far chore says `spaeter`). |
-| POST   | `/api/tasks` | create; recurring without a date → due today |
-| PATCH  | `/api/tasks/:id` | partial; `recurrence: null` → one-off |
+| POST   | `/api/tasks` | create; recurring without a date → due today; `notify` optional; may push (see above) |
+| PATCH  | `/api/tasks/:id` | partial (incl. `notify`); `recurrence: null` → one-off; `updateTask` takes the `Actor` so it can push |
 | POST   | `/api/tasks/:id/complete` | `{date?}` (≤ today) → Completion DONE + move date / finish one-off |
 | POST   | `/api/tasks/:id/skip` | recurring only → Completion SKIPPED + move date |
 | POST   | `/api/tasks/:id/undo` | delete latest *recorded* completion, restore `dueDateBefore` / clear `doneAt`; 409 if none |

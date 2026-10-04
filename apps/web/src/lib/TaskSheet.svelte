@@ -34,6 +34,7 @@
   let unit = $state<Unit>(t?.recurrence?.unit ?? 'WEEK');
   let mode = $state<Mode>(t?.recurrence?.mode ?? 'AFTER_COMPLETION');
   // ADR-0008: default window März–Oktober when the switch is turned on.
+  let notify = $state(t?.notify ?? false);
   let seasonal = $state(!!t?.recurrence?.season);
   let seasonFrom = $state(t?.recurrence?.season?.from ?? 3);
   let seasonTo = $state(t?.recurrence?.season?.to ?? 10);
@@ -81,6 +82,7 @@
         title: title.trim(),
         notes: notes.trim() === '' ? null : notes,
         priority,
+        notify,
         dueDate: dueDate === '' ? null : dueDate,
         recurrence: repeat
           ? { every, unit, mode, season: seasonal ? { from: seasonFrom, to: seasonTo } : null }
@@ -143,6 +145,14 @@
           {/each}
         </div>
       </fieldset>
+
+      <label class="switch-row">
+        <input type="checkbox" bind:checked={notify} />
+        <span>
+          Benachrichtigen, wenn fällig
+          <small class="switch-hint">Alle bekommen eine Push-Nachricht, sobald die Aufgabe dran ist.</small>
+        </span>
+      </label>
 
       <div class="field">
         <label class="label" for="due">Fällig am</label>

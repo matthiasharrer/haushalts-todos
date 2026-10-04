@@ -3,6 +3,22 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-04 — Push notifications (ADR-0009)
+
+- Matthias floated Home Assistant creating tasks (washer done → "Wäsche
+  aufhängen"), then pulled **push** forward as its precondition. His calls:
+  Android only; daily digest switchable, time per user; not every task pushes
+  (per-task `notify`); a new one-off pushes to everyone but its creator.
+- Built by a Sonnet agent from ADR-0009 and TC-58…71: PWA shell (manifest,
+  icons, push-only `sw.js`), VAPID keys in `AppSetting`, `PushSubscription`,
+  event pushes after writes, a minute ticker with a pure planner, Settings
+  card, sheet switch + bell, MCP `notify`. e2e uses a JSONL outbox.
+- Lead fixes in review: daily run no longer sets `notifiedFor` (second
+  digest-off user missed pushes); update pushes "due now" only on a real
+  change; manifest fetched with credentials (Authelia).
+- Open: TC-71 on Matthias's phone; pod egress to FCM at deploy; HA triggers
+  next (token question open for Matthias).
+
 ## 2026-10-03/04 — Seasonal chores (ADR-0008), `v0.2.0`
 
 Matthias asked for seasonal recurring chores ("Rasenmähen nur im Sommer").

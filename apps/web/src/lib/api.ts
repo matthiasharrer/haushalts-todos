@@ -1,4 +1,12 @@
-export type Me = { id: number; username: string; displayName: string; email: string | null };
+export type Me = {
+  id: number;
+  username: string;
+  displayName: string;
+  email: string | null;
+  digestEnabled: boolean;
+  /** "HH:MM", Europe/Berlin. */
+  notifyTime: string;
+};
 
 export type Priority = 'LOW' | 'NORMAL' | 'HIGH';
 export type Unit = 'DAY' | 'WEEK' | 'MONTH';
@@ -25,6 +33,8 @@ export interface Task {
   priority: Priority;
   dueDate: string | null;
   recurrence: Recurrence | null;
+  /** Push when it becomes due (ADR-0009). */
+  notify: boolean;
   /** Seasonal chore out of season and not due yet (ADR-0008). */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -44,6 +54,7 @@ export interface TaskPatch {
   priority?: Priority;
   dueDate?: string | null;
   recurrence?: Recurrence | null;
+  notify?: boolean;
 }
 
 /** An API failure with a message that is safe to show to the user. */
@@ -82,6 +93,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const getMe = () => request<Me>('GET', '/api/me');
+export const patchMe = (patch: { digestEnabled?: boolean; notifyTime?: string }) =>
+  request<Me>('PATCH', '/api/me', patch);
 export const listTasks = () => request<TaskList>('GET', '/api/tasks');
 export interface RecurringList {
   today: string;
@@ -115,6 +128,13 @@ export const listMcpClients = () => request<McpClient[]>('GET', '/api/mcp/client
 export const renameMcpClient = (id: number, name: string) =>
   request<McpClient>('PATCH', `/api/mcp/clients/${id}`, { name });
 export const revokeMcpClient = (id: number) => request<void>('DELETE', `/api/mcp/clients/${id}`);
+
+export const getPushConfig = () => request<{ publicKey: string }>('GET', '/api/push/config');
+export const savePushSubscription = (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+  request<unknown>('POST', '/api/push/subscriptions', sub);
+export const deletePushSubscription = (endpoint: string) =>
+  request<void>('DELETE', '/api/push/subscriptions', { endpoint });
+export const sendPushTest = (endpoint: string) => request<void>('POST', '/api/push/test', { endpoint });
 
 export const messageOf = (e: unknown) =>
   e instanceof ApiError ? e.message : 'Das hat nicht geklappt. Bitte versuche es noch einmal.';

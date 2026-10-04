@@ -7,6 +7,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { isValidDate, todayBerlin } from './dates.js';
 import { foldText } from './text.js';
 import { inSeason, nextDueDate, normalizeSeason, seasonDate, type Season } from './recurrence.js';
+import { pushAfterWrite, type Before } from './pushEvents.js';
 import { sectionOf, sortTasks, urgencyScore, type Section } from './urgency.js';
 
 export class TaskError extends Error {
@@ -43,6 +44,7 @@ export const createTaskSchema = z.object({
   priority: z.enum(['LOW', 'NORMAL', 'HIGH']).optional(),
   dueDate: dateStr.nullish(),
   recurrence: recurrence.nullish(),
+  notify: z.boolean().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -51,6 +53,7 @@ export const updateTaskSchema = z.object({
   priority: z.enum(['LOW', 'NORMAL', 'HIGH']).optional(),
   dueDate: dateStr.nullable().optional(),
   recurrence: recurrence.nullable().optional(),
+  notify: z.boolean().optional(),
 });
 
 export const completeSchema = z.object({ date: dateStr.optional() });
@@ -87,6 +90,8 @@ export interface TaskDto {
     mode: 'AFTER_COMPLETION' | 'FIXED';
     season: Season | null;
   } | null;
+  /** Push when it becomes due (ADR-0009). */
+  notify: boolean;
   /** Derived (ADR-0008): seasonal, out of season today, and not due yet. */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -124,6 +129,7 @@ function toDto(t: TaskRow, today: string): TaskDto {
     priority: t.priority,
     dueDate: t.dueDate,
     recurrence: rec,
+    notify: t.notify,
     resting: !!season && !inSeason(today, season) && t.dueDate !== null && t.dueDate > today,
     createdBy: t.createdBy,
     lastDone: last ? { date: last.date, by: last.user } : null,
@@ -215,20 +221,26 @@ export async function createTask(input: CreateTaskInput, actor: Actor): Promise<
       priority: input.priority ?? 'NORMAL',
       dueDate,
       ...recurrenceColumns(rec),
+      notify: input.notify ?? false,
       createdById: actor.userId,
       createdVia: actor.via,
     },
   });
-  return dtoById(prisma, task.id);
+  const dto = await dtoById(prisma, task.id);
+  await pushAfterWrite(task.id, actor.userId, null);
+  return dto;
 }
 
-export async function updateTask(id: number, patch: UpdateTaskInput): Promise<TaskDto> {
-  return prisma.$transaction(async (tx) => {
+export async function updateTask(id: number, patch: UpdateTaskInput, actor: Actor): Promise<TaskDto> {
+  let before: Before = null;
+  const dto = await prisma.$transaction(async (tx) => {
     const task = await activeTask(tx, id);
+    before = { dueDate: task.dueDate, notify: task.notify };
     const data: Prisma.TaskUpdateInput = {};
     if (patch.title !== undefined) data.title = patch.title;
     if (patch.notes !== undefined) data.notes = patch.notes;
     if (patch.priority !== undefined) data.priority = patch.priority;
+    if (patch.notify !== undefined) data.notify = patch.notify;
 
     const willRecur =
       patch.recurrence !== undefined
@@ -283,6 +295,8 @@ export async function updateTask(id: number, patch: UpdateTaskInput): Promise<Ta
     await tx.task.update({ where: { id }, data });
     return dtoById(tx, id);
   });
+  await pushAfterWrite(id, actor.userId, before);
+  return dto;
 }
 
 /** Shared by complete and skip: log it and move the due date / finish the one-off. */

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { identity, type AppEnv } from './identity.js';
 import { me } from './routes/me.js';
+import { push } from './routes/push.js';
 import { recurring } from './routes/recurring.js';
 import { tasks } from './routes/tasks.js';
 import { mcpClients } from './routes/mcpClients.js';
@@ -17,6 +18,7 @@ app.get('/api/health', (c) =>
 app.use('/api/*', identity);
 app.route('/api/me', me);
 app.route('/api/tasks', tasks);
+app.route('/api/push', push);
 app.route('/api/recurring', recurring);
 app.route('/api/mcp', mcpConfig);
 app.route('/api/mcp/clients', mcpClients);

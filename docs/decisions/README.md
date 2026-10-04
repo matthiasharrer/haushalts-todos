@@ -10,3 +10,4 @@
 | 0006 | [MCP server with OAuth, tokens bound to the approving user](0006-mcp-server-user-bound-tokens.md) | Accepted |
 | 0007 | [Home is the to-do list; recurring chores get their own view](0007-home-list-and-recurring-view.md) | Accepted |
 | 0008 | [Seasonal chores: a month window that moves the due date](0008-seasonal-chores.md) | Accepted |
+| 0009 | [Push notifications: installable PWA, Web Push, daily digest, per-task reminders](0009-push-notifications.md) | Accepted |

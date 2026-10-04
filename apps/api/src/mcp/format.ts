@@ -74,6 +74,7 @@ export function taskForModel(t: TaskDto, today: string) {
     dueLabel: dueLabel(t.dueDate, today),
     recurrenceLabel: recurrenceLabel(t.recurrence),
     priorityLabel: PRIORITY_LABEL[t.priority],
+    notifyLabel: t.notify ? 'Push-Benachrichtigung, sobald fällig' : null,
     sectionLabel: SECTION_LABEL[t.section],
     lastDone: t.lastDone
       ? { ...t.lastDone, label: `${agoLabel(t.lastDone.date, today)} von ${t.lastDone.by.displayName}` }
