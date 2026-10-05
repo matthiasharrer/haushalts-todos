@@ -3,6 +3,12 @@
 Shipped roadmap entries, newest first. The reasoning is in `decisions/`, the
 test evidence in `testing.md`'s run log.
 
+## 2026-10-05
+
+- **Header title goes home, `v0.4.1`.** Tapping "Haushalt" in the app bar
+  opens Aufgaben from any view (Matthias's request). `/` without a hash
+  already landed on Aufgaben, so the default needed no change. TC-37 extended.
+
 ## 2026-10-04
 
 - **Trigger tasks for Home Assistant (ADR-0010), `v0.4.0`.** Third task kind

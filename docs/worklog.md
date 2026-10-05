@@ -3,6 +3,16 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-05 — Header title links home, `v0.4.1`
+
+- Matthias wanted the to-do list as the default page and the header title to
+  lead there. The default already was Aufgaben (`/` or an unknown hash). If he
+  still lands elsewhere, the cause is a URL with a hash (bookmark, restored
+  tab), not the router. Only the title link was new.
+- e2e needs `PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright` again: the
+  image has `chromium_headless_shell-1243` missing.
+- Released `v0.4.1` on Matthias's go.
+
 ## 2026-10-04 — Trigger tasks for Home Assistant (ADR-0010)
 
 - Path to the design: Matthias first asked whether HA could just call the API

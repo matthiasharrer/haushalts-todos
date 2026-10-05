@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-04 (`v0.4.0` tagged: trigger tasks, ADR-0010)_
+_Last updated: 2026-10-05 (`v0.4.1` tagged: header title links to Aufgaben)_
 
 ## Next — MVP in real use
 
