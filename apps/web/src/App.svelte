@@ -23,7 +23,7 @@
 
 <div class="app" class:with-add={view === 'home'}>
   <header class="app-bar">
-    <h1>Haushalt</h1>
+    <h1><a class="home-link" href="#/">Haushalt</a></h1>
     <a
       class="me-link"
       href="#/einstellungen"

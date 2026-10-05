@@ -57,6 +57,16 @@ test('TC-37 Tab-Leiste: Ansicht wechseln, Hash in der URL, Reload und Zurück, S
   const bar = (await page.locator('.quick-add').boundingBox())!;
   const tab = (await tabs(page).boundingBox())!;
   expect(bar.y + bar.height).toBeLessThanOrEqual(tab.y + 1);
+
+  // the app title in the header leads back to Aufgaben from any view
+  const title = page.getByRole('banner').getByRole('link', { name: 'Haushalt' });
+  for (const from of ['/#/routinen', '/#/einstellungen']) {
+    await page.goto(from);
+    await title.click();
+    await expect(page).toHaveURL(/#\/$/);
+    await expect(aufgaben).toHaveAttribute('aria-current', 'page');
+    await expect(quick).toBeVisible();
+  }
 });
 
 test('TC-38 Wiederkehrend zeigt Termin, Rhythmus, zuletzt; ferne Aufgabe nur hier; Leerzustand', async ({ page, request }) => {
