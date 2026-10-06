@@ -11,6 +11,10 @@
   `assigneeId` plus a "Meine" filter.
 - **Rooms / categories / tags.** Flat list first; add when the list gets long
   enough to need it.
+  **Matthias, 2026-10-06:** concretely wants **user-defined groups for
+  recurring tasks** (e.g. "Putzen"), created in the app. Idea only, not to be
+  built yet; decide with real use (group = optional field on the recurring
+  task, list sections per group?).
 - **Shopping list.** Stays in Microsoft To Do (Einkaufsliste MCP) for now.
 
 ## Matthias's ideas, 2026-10-02 (not thought through yet; decide after real use)
