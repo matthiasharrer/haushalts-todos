@@ -41,14 +41,15 @@
     <span class="title">
       {#if task.trigger}<span class="bolt" role="img" aria-label="Auslöser"><Icon name="bolt" size={14} /></span>{/if}{task.title}
     </span>
-    {#if task.priority === 'HIGH' || due || state || rec || last || task.notify}
+    {#if task.priority === 'HIGH' || due || state || rec || last || task.notify || task.notes}
       <span class="sub">
         {#if task.priority === 'HIGH'}<span class="badge">wichtig</span>{/if}
         {#if due}<span class="due" class:overdue>{due}</span>{/if}
         {#if state}<span class="due">{state}</span>{/if}
         {#if rec}<span>{rec}{task.recurrence?.mode === 'FIXED' ? ' · fest' : ''}</span>{/if}
         {#if last}<span>{last}</span>{/if}
-        {#if task.notify}<span class="bell" role="img" aria-label="benachrichtigt"><Icon name="bell" size={13} /></span>{/if}
+        {#if task.notify}<span class="sub-icon" role="img" aria-label="benachrichtigt"><Icon name="bell" size={13} /></span>{/if}
+        {#if task.notes}<span class="sub-icon" role="img" aria-label="hat Notizen"><Icon name="note" size={13} /></span>{/if}
       </span>
     {/if}
   </button>

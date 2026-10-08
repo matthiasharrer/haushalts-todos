@@ -472,6 +472,28 @@ dialog.sheet[open] {
 .sheet textarea {
   resize: vertical;
 }
+.sheet textarea.notes-input {
+  resize: none;
+  overflow: hidden;
+}
+.notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: calc((var(--tap) - 1.25rem) / -2) 0;
+  margin-right: calc(var(--tap) / -4);
+}
+.notes-view {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.notes-view a {
+  color: var(--accent-text);
+}
 .hint {
   margin: 0;
   font-size: 0.8125rem;
@@ -550,11 +572,11 @@ dialog.sheet[open] {
 .switch-row small {
   display: block;
 }
-.sub > .bell {
+.sub > .sub-icon {
   display: inline-flex;
   vertical-align: -2px;
 }
-.sub > .bell::after {
+.sub > .sub-icon::after {
   content: none;
 }
 .repeat-box {

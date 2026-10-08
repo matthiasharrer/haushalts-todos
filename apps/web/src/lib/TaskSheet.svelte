@@ -2,12 +2,13 @@
   // Bottom-sheet dialog to edit one task (adapted from rezepte's CookLogSheet).
   // Native <dialog>: Escape and the backdrop tap close it. Actions are async
   // callbacks owned by the parent; a rejection shows inline here.
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { issueHookToken, messageOf, type Mode, type Priority, type Refire, type Task, type TaskPatch, type Unit } from './api';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import { MONTHS } from './format';
   import HookTokenDialog from './HookTokenDialog.svelte';
   import Icon from './Icon.svelte';
+  import { linkify } from './linkify';
   import { invalidate } from './store.svelte';
 
   interface Props {
@@ -28,6 +29,9 @@
   const creating = t === undefined;
   let title = $state(t?.title ?? '');
   let notes = $state(t?.notes ?? '');
+  // Existing notes open readable (full length, clickable links); the pencil switches to the textarea.
+  let editingNotes = $state(!t?.notes);
+  let notesEl = $state<HTMLTextAreaElement>();
   let priority = $state<Priority>(t?.priority ?? 'NORMAL');
   // svelte-ignore state_referenced_locally
   let dueDate = $state(t ? (t.dueDate ?? '') : today);
@@ -68,7 +72,28 @@
     return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
   }
 
-  onMount(() => dialog.showModal());
+  onMount(() => {
+    dialog.showModal();
+    fitNotes();
+  });
+
+  // The notes textarea grows with its content (field-sizing isn't in every browser yet).
+  function fitNotes() {
+    if (!notesEl) return;
+    notesEl.style.height = 'auto';
+    notesEl.style.height = `${notesEl.scrollHeight + notesEl.offsetHeight - notesEl.clientHeight}px`;
+  }
+  $effect(() => {
+    void notes;
+    fitNotes();
+  });
+
+  async function editNotes() {
+    editingNotes = true;
+    await tick();
+    notesEl?.focus();
+    notesEl?.setSelectionRange(notes.length, notes.length);
+  }
 
   function setKind(k: Kind) {
     kind = k;
@@ -168,10 +193,22 @@
         <input type="text" bind:value={title} maxlength="200" autocomplete="off" />
       </label>
 
-      <label class="field">
-        <span class="label">Notizen</span>
-        <textarea bind:value={notes} rows="2" maxlength="5000"></textarea>
-      </label>
+      {#if editingNotes}
+        <label class="field">
+          <span class="label">Notizen</span>
+          <textarea class="notes-input" bind:this={notesEl} bind:value={notes} rows="2" maxlength="5000"></textarea>
+        </label>
+      {:else}
+        <div class="field">
+          <div class="notes-head">
+            <span class="label">Notizen</span>
+            <button type="button" class="icon-btn" aria-label="Notizen bearbeiten" onclick={editNotes}>
+              <Icon name="pencil" size={18} />
+            </button>
+          </div>
+          <p class="notes-view">{#each linkify(notes) as seg}{#if seg.kind === 'link'}<a href={seg.href} target="_blank" rel="noopener noreferrer">{seg.label}</a>{:else}{seg.text}{/if}{/each}</p>
+        </div>
+      {/if}
 
       <fieldset class="field">
         <legend class="label">Priorität</legend>
