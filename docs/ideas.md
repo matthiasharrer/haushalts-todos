@@ -24,8 +24,8 @@
   source, "after task X is done + delay", for a trigger task. The follow-up is
   itself one persistent row that goes waiting → due, so a recurring or
   triggered predecessor no longer means generated instances. Skip doesn't
-  fire it. Matthias wants it; next after the HA hook. Its delay is in days
-  until due times exist (below).
+  fire it. **Now ADR-0011 (2026-10-08), with the delay in hours** (days on
+  calendar dates were wrong for laundry).
 - **When a task *can* be done** (e.g. Wertstoffhof must be open). Three levels:
   1. "frühestens ab" date: hidden (or under Später) until then; also covers
      seasonal chores. Very cheap.
@@ -71,10 +71,15 @@
 
 ## From the Home Assistant discussion, 2026-10-04
 
-- **Due times** (Matthias: "Uhrzeit als Fälligkeit wäre schon gut"). Today a
+- **Due times** (Matthias: "Uhrzeit als Fälligkeit wäre schon gut"; on the roadmap since 2026-10-08). Today a
   due date is a calendar day (ADR-0004). A time makes "24 h later" exact and
   lets a reminder push at that time. Touches sections, urgency, digest and the
   sheet; needs its own ADR. Candidate after trigger tasks.
 - **HA beyond firing** (ADR-0010 "not now"): pass a title/note suffix
   ("Trockner fertig, 2 h 10 min"); complete a task from HA (dryer door
   opened); a read endpoint so an HA sensor shows "3 fällig".
+
+## From the follow-up discussion, 2026-10-08
+
+- **Quiet hours for pushes:** a follow-up can fire at 2 a.m. Matthias: fine,
+  the phone stays silent at night anyway. Revisit if it annoys.

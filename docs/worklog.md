@@ -3,6 +3,25 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-08 — Follow-ups (ADR-0011)
+
+- Matthias asked for the laundry chain (dryer → "Wäsche aufhängen" → 24 h
+  after ticking it off → "Wäsche aufräumen"). ADR-0010 had planned the delay
+  in days; that's wrong on calendar dates (hung at 22:00 → due next morning).
+  He chose **hours**. A 2 a.m. push is fine for him ("the phone stays silent").
+- Design: the follow-up stays a waiting trigger task with a stored `fireAt`.
+  The existing one-minute ticker fires it through `fireTask`, so no due times
+  were needed. Due times are next on the roadmap. Before that ADR, ask him
+  for concrete use cases.
+- Built by a Sonnet agent. The lead's review fixed two bugs (see the testing.md
+  run log). The agent also fixed TC-36, which was order-dependent: it broke
+  whenever trigger tasks existed in the shared e2e DB.
+- e2e time seam: `setFireAt()` in `e2e/support/tasks.ts` writes `fireAt` into
+  the e2e DB. Prisma stores DateTime in SQLite as ISO text with `+00:00`. The
+  tick compares it as text, which is safe because the format is fixed.
+- Cosmetic, pre-existing: the row's sub-line puts a "·" before the bell icon
+  ("wartet · 🔔"). Not touched.
+
 ## 2026-10-08 — Readable notes, `v0.5.0`
 
 - Trigger: an LLM (via MCP) created "Ersatzakku für Babyphone" with long notes

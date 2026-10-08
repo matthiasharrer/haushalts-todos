@@ -5,6 +5,12 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-08
 
+- **Follow-ups (ADR-0011).** A trigger task can follow another task: N hours
+  (1–720) after it's done, it fires like an HA trigger (due, push). For the
+  laundry chain "Wäsche aufhängen" → 24 h → "Wäsche aufräumen". The delay is in
+  hours, not days: days on calendar dates would make it due about 9 h after
+  hanging laundry up at 22:00. TC-87…95.
+
 - **Readable notes, `v0.5.0`.** Notes were only visible in a 2-line textarea
   inside the edit sheet, links not clickable (Matthias, on an LLM-written
   task with shop links). Now: a note icon in the list row; the sheet shows
