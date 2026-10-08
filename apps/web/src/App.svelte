@@ -2,6 +2,7 @@
   import { getMe, type Me } from './lib/api';
   import Icon from './lib/Icon.svelte';
   import Toast from './lib/Toast.svelte';
+  import UpdateBanner from './lib/UpdateBanner.svelte';
   import Home from './routes/Home.svelte';
   import Recurring from './routes/Recurring.svelte';
   import Settings from './routes/Settings.svelte';
@@ -38,6 +39,7 @@
     {#if view === 'home'}<Home />{:else if view === 'recurring'}<Recurring />{:else}<Settings />{/if}
   </main>
   <Toast />
+  <UpdateBanner />
   <nav class="tab-bar" aria-label="Ansicht">
     <a href="#/" aria-current={view === 'home' ? 'page' : undefined}>
       <Icon name="list" /><span>Aufgaben</span>

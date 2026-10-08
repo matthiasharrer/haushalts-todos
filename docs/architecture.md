@@ -99,6 +99,14 @@ permission, subscribe with the VAPID key, unsubscribe, test); the UI is the
 "Benachrichtigungen" card in Settings and the "Benachrichtigen, wenn fällig"
 switch in the task sheet (bell icon on rows with `notify`).
 
+**Stale-bundle check** (ADR-0012): `main.ts` calls `watchForUpdates()`
+(`lib/appUpdate.svelte.ts`). When the page returns to the foreground it
+fetches `/?build-check=…` (`no-store`, `redirect: 'error'`, at most once a
+minute) and compares the hashed `/assets/index-<hash>.js` with its own;
+different → `UpdateBanner.svelte` („Neue Version verfügbar“ / „Neu laden“).
+No reload without the user's tap, no server involvement, inert on the Vite dev
+server.
+
 ## Trigger tasks and the hook (ADR-0010)
 
 `routes/hooks.ts` serves `POST /hooks/:id`, mounted in `app.ts` **outside

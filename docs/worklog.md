@@ -3,6 +3,23 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-08 — „Neue Version verfügbar“ banner (ADR-0012)
+
+- Matthias missed the new „Folgt auf“ field because the phone kept the old
+  bundle running for days. Decision (lead): on `visibilitychange`, fetch
+  `/?build-check=…`, compare the hashed entry script, show a banner with „Neu
+  laden“. No auto-reload (half-filled sheet), 60 s throttle, `redirect:
+  'error'` so an Authelia login redirect isn't a "new version".
+- Core in `apps/web/src/lib/appUpdate.svelte.ts` (written by the lead, copied
+  verbatim to the sibling repos), `UpdateBanner.svelte` mounted in `App.svelte`,
+  `watchForUpdates()` in `main.ts`. TC-96…99 + unit tests.
+- Gotchas: the banner never shows on the Vite dev server (no hashed bundle);
+  check it against the built server. The unit test sets a `$state` identity
+  shim on `globalThis` before importing the module (runes need the Svelte
+  compiler, tsx has none). In e2e, `page.unroute` needs the *same function
+  reference* as `page.route`.
+- Unreleased; goes out with the next tag.
+
 ## 2026-10-08 — Dependency refresh (in-range)
 
 - `npm update` across all workspaces, in-range only (sibling repos the same day).

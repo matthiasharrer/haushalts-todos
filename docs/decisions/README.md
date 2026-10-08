@@ -13,3 +13,4 @@
 | 0009 | [Push notifications: installable PWA, Web Push, daily digest, per-task reminders](0009-push-notifications.md) | Accepted |
 | 0010 | [Trigger tasks: a task that becomes due when Home Assistant fires it](0010-trigger-tasks.md) | Accepted |
 | 0011 | [Follow-ups: a trigger task fires a set number of hours after another task is done](0011-follow-up-triggers.md) | Accepted |
+| 0012 | [„Neue Version verfügbar“: compare the entry script when the app returns to the foreground](0012-new-version-banner.md) | Accepted |

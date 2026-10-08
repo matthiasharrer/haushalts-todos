@@ -11,7 +11,7 @@
 ```bash
 npm run e2e                                    # build, boot :3201 on .e2e/e2e.db, run, tear down
 PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright npm run e2e   # if browsers are "missing"
-npm run test:unit                              # pure domain logic (TC-06…13) + web helpers (linkify)
+npm run test:unit                              # pure domain logic (TC-06…13) + web helpers (linkify, entryScript)
 ```
 
 ## The process
@@ -190,10 +190,22 @@ Unit: `apps/api/src/lib/followUp.test.ts` (fire time), `apps/web/src/lib/format.
 | TC-48 | `get_task` returns the task plus its history (latest first, up to 20): date, DONE/SKIPPED, who, via. |
 | TC-49 | **Settings** (`#/einstellungen`, reachable from the header): shows the MCP endpoint URL (`<origin>/mcp`) and a short German how-to; lists **only my** clients (name, "verbunden seit", "zuletzt benutzt"); rename works; **revoke** (with confirm) → that client's access token gets 401 at `/mcp` immediately and its refresh token `invalid_grant`. Anna's clients are not visible to Matthias, and he can't revoke them via the API (404). The raw `MCP_TOKEN` appears nowhere in the page or any API response. |
 
+### New-version banner (ADR-0012; scripted e2e at 390×844: `e2e/tests/app-update.spec.ts`; unit: `apps/web/src/lib/appUpdate.test.ts`)
+
+**Seam:** "foreground" is `document.dispatchEvent(new Event('visibilitychange'))`; the check (`/?build-check=…`) is intercepted with `page.route`. Unit: `entryScript` on a real Vite snippet (→ `/assets/index-AbC123.js`), an absolute URL (→ its pathname), the dev html (→ null) and a login page without assets (→ null).
+
+| ID    | Case | How |
+| ----- | ---- | --- |
+| TC-96 | **Same build:** after the foreground check (a real `GET /?build-check=…` answered 200 with the hashed entry script) there is no banner. | scripted |
+| TC-97 | **New build:** the check returns html with `/assets/index-NEUERBUILD.js` → a `status` „Neue Version verfügbar“ with „Neu laden“ (≥ 44 px) appears, no horizontal scroll. Tapping it reloads the page; afterwards the banner is gone, and a further foreground check against the real server shows none. | scripted + eyes |
+| TC-98 | **Check fails** (request aborted): no banner, no page error, no console error from the app. | scripted |
+| TC-99 | **Login redirect** (`302` to another origin, as with an expired Authelia session): no banner. | scripted |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-08 | ADR-0012 new-version banner: TC-96…99 (new) + `entryScript` unit tests, full suite + unit | **e2e 87/87** (32.4 s), **unit 58/58 (api) + 13/13 (web)**, tsc + svelte-check clean. Lead eyes at 390×844 on the built server (entry script forced to differ): pill under the safe-area top, light and dark, „Neu laden“ ≥ 48 px, no horizontal scroll. |
 | 2026-10-08 | In-range dependency refresh (MCP SDK 2.3, Playwright 1.64, hono, vite, svelte), full suite + unit | **e2e 83/83**, **unit 58/58 + 9/9**, tsc + svelte-check clean, lead run. |
 | 2026-10-08 (prod) | TC-71, TC-82 by hand (Matthias) | **TC-82 pass:** the HA `rest_command`, run by hand as an HA action, fired the trigger task in prod and the push arrived at once. The real washer automation hasn't run it yet. **TC-71 partial:** push works on Matthias's phone; Tina uses the app, her push is unconfirmed. **TC-95** not run yet. |
 | 2026-10-08 (release) | `v0.6.0`: follow-ups (ADR-0011) | Same code as the 2026-10-08 ADR-0011 run below (only docs changed since): **e2e 83/83**, **unit 58/58 + 9/9**, tsc + svelte-check clean. **TC-95 open: Matthias.** |

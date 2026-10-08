@@ -5,6 +5,13 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-08
 
+- **„Neue Version verfügbar“ banner (ADR-0012), shipped, unreleased.** An app
+  left open in the background kept the old bundle for days (Matthias missed
+  „Folgt auf“ until he killed the app). When the page returns to the
+  foreground it fetches `index.html`, compares the hashed entry script with
+  its own and, if they differ, shows „Neue Version verfügbar“ with „Neu
+  laden“. No auto-reload, no backend change, no build plugin. TC-96…99.
+
 - **Deployed through `v0.6.0`** (Matthias): `HOOK_BASE_URL` set, the app works
   for Tina, push works on Matthias's phone, and the HA `rest_command` fired a
   trigger task with a push (run by hand in HA, not yet from the real
