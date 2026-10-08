@@ -1,7 +1,7 @@
 // German-friendly labels for MCP tool results, so the model can answer in
 // German without doing date arithmetic. Mirrors apps/web/src/lib/format.ts
 // (kept separate: the API never imports from the web app).
-import { diffDays } from '../lib/dates.js';
+import { diffDays, todayBerlin } from '../lib/dates.js';
 import type { HistoryEntry, TaskDto } from '../lib/tasks.js';
 
 const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -54,10 +54,33 @@ export function recurrenceLabel(r: TaskDto['recurrence']): string | null {
   return mode === 'FIXED' ? `${base}${season} (fester Termin)` : `${base}${season} (ab dem Erledigen)`;
 }
 
-/** "Auslöser · wartet" / "Auslöser · ausgelöst heute"; null for other tasks. */
+const berlinTime = new Intl.DateTimeFormat('de-DE', {
+  timeZone: 'Europe/Berlin',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** "kommt heute 22:15" / "kommt morgen 22:15" / "kommt Do. 15.10. 22:15" (Berlin time, ADR-0011). */
+export function comesLabel(fireAtIso: string, today: string): string {
+  const at = new Date(fireAtIso);
+  const day = todayBerlin(at);
+  const n = diffDays(today, day);
+  const when = n <= 0 ? 'heute' : n === 1 ? 'morgen' : weekdayDate(day);
+  return `kommt ${when} ${berlinTime.format(at)}`;
+}
+
+/**
+ * "Auslöser · wartet" / "Auslöser · kommt morgen 22:15" / "Auslöser · nach „X“ + 24 h" /
+ * "Auslöser · ausgelöst heute"; null for other tasks.
+ */
 export function triggerLabel(t: TaskDto, today: string): string | null {
   if (!t.trigger) return null;
-  if (t.dueDate === null) return 'Auslöser · wartet';
+  if (t.dueDate === null) {
+    if (t.trigger.fireAt) return `Auslöser · ${comesLabel(t.trigger.fireAt, today)}`;
+    if (t.trigger.after) return `Auslöser · nach „${t.trigger.after.title}“ + ${t.trigger.after.hours} h`;
+    return 'Auslöser · wartet';
+  }
   const when = t.dueDate === today ? 'heute' : `am ${t.dueDate.slice(8)}.${t.dueDate.slice(5, 7)}.`;
   return `Auslöser · ausgelöst ${when}`;
 }

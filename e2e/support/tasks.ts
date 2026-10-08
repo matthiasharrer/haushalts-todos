@@ -38,6 +38,23 @@ export function dbAll(sql: string, ...params: unknown[]): any[] {
   }
 }
 
+/**
+ * Test seam for ADR-0011 (docs/testing.md): the only way to move "time".
+ * Writes `fireAt` of ONE of the caller's own tasks (Prisma stores DateTime in
+ * SQLite as ISO text with a +00:00 offset). No production code path does this.
+ */
+export function setFireAt(taskId: number, at: Date | null): void {
+  const Database = require('better-sqlite3');
+  const db = new Database(DB_PATH);
+  try {
+    const value = at ? at.toISOString().replace('Z', '+00:00') : null;
+    const r = db.prepare('UPDATE Task SET fireAt = ? WHERE id = ?').run(value, taskId);
+    if (r.changes !== 1) throw new Error(`setFireAt: task ${taskId} not found`);
+  } finally {
+    db.close();
+  }
+}
+
 // ---- seasons (ADR-0008): computed relative to the current Berlin month ------
 
 export const MONTH_NAMES = [

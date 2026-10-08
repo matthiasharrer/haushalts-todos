@@ -9,6 +9,7 @@ import { foldText } from './text.js';
 import { inSeason, nextDueDate, normalizeSeason, seasonDate, type Season } from './recurrence.js';
 import { hashToken, newToken, verifyToken } from './hookToken.js';
 import { pushAfterWrite, pushFired, type Before } from './pushEvents.js';
+import { followUpBase, followUpFireAt } from './followUp.js';
 import { sectionOf, sortTasks, urgencyScore, type Section } from './urgency.js';
 
 export class TaskError extends Error {
@@ -40,7 +41,14 @@ const recurrence = z.object({
 });
 
 // ADR-0010: sending { refire } makes it a trigger task; null (update only) turns it off.
-const trigger = z.object({ refire: z.enum(['PUSH', 'NONE']).default('PUSH') });
+// refire defaults to PUSH on create; on update an absent refire keeps the stored one.
+// ADR-0011: `after` names the predecessor and the delay; on update absent = unchanged, null = remove.
+const trigger = z.object({
+  refire: z.enum(['PUSH', 'NONE']).optional(),
+  after: z
+    .object({ taskId: z.number().int().positive(), hours: z.number().int().min(1).max(720) })
+    .nullish(),
+});
 
 export const createTaskSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -80,6 +88,13 @@ const taskInclude = {
     take: 1,
     include: { user: { select: { id: true, displayName: true } } },
   },
+  afterTask: { select: { id: true, title: true } },
+  // ADR-0011: the active trigger tasks that follow this one.
+  followUps: {
+    where: { archivedAt: null, triggerRefire: { not: null } },
+    orderBy: { id: 'asc' as const },
+    select: { id: true, title: true, afterHours: true },
+  },
 } satisfies Prisma.TaskInclude;
 
 type TaskRow = Prisma.TaskGetPayload<{ include: typeof taskInclude }>;
@@ -99,7 +114,17 @@ export interface TaskDto {
   /** Push when it becomes due (ADR-0009). */
   notify: boolean;
   /** Trigger task (ADR-0010) or null. Never carries the token or its hash. */
-  trigger: { refire: 'PUSH' | 'NONE'; hasToken: boolean; firedAt: string | null } | null;
+  trigger: {
+    refire: 'PUSH' | 'NONE';
+    hasToken: boolean;
+    firedAt: string | null;
+    /** ADR-0011: the predecessor and delay, if this is a follow-up. */
+    after: { taskId: number; title: string; hours: number } | null;
+    /** ADR-0011: ISO time a pending follow-up fires, else null. */
+    fireAt: string | null;
+  } | null;
+  /** ADR-0011: active follow-ups of this task. */
+  followUps: { id: number; title: string; hours: number }[];
   /** Derived (ADR-0008): seasonal, out of season today, and not due yet. */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -139,8 +164,18 @@ function toDto(t: TaskRow, today: string): TaskDto {
     recurrence: rec,
     notify: t.notify,
     trigger: t.triggerRefire
-      ? { refire: t.triggerRefire, hasToken: t.hookTokenHash !== null, firedAt: t.firedAt?.toISOString() ?? null }
+      ? {
+          refire: t.triggerRefire,
+          hasToken: t.hookTokenHash !== null,
+          firedAt: t.firedAt?.toISOString() ?? null,
+          after:
+            t.afterTask && t.afterHours !== null
+              ? { taskId: t.afterTask.id, title: t.afterTask.title, hours: t.afterHours }
+              : null,
+          fireAt: t.fireAt?.toISOString() ?? null,
+        }
       : null,
+    followUps: t.followUps.map((f) => ({ id: f.id, title: f.title, hours: f.afterHours ?? 0 })),
     resting: !!season && !inSeason(today, season) && t.dueDate !== null && t.dueDate > today,
     createdBy: t.createdBy,
     lastDone: last ? { date: last.date, by: last.user } : null,
@@ -164,6 +199,16 @@ async function dtoById(db: Db, id: number): Promise<TaskDto> {
   const row = await db.task.findUniqueOrThrow({ where: { id }, include: taskInclude });
   return toDto(row, todayBerlin());
 }
+
+/** ADR-0011: a predecessor must be another active task (not archived, not a finished one-off). */
+async function checkPredecessor(db: Db, predecessorId: number, selfId: number | null) {
+  const pred = await db.task.findFirst({ where: { id: predecessorId, archivedAt: null, doneAt: null } });
+  if (!pred || pred.id === selfId) {
+    throw new TaskError(400, 'The predecessor must be another active task');
+  }
+}
+
+const NO_FOLLOW_UP = { afterTaskId: null, afterHours: null, fireAt: null, fireAtCompletionId: null };
 
 function recurrenceColumns(r: z.infer<typeof recurrence> | null) {
   const season = normalizeSeason(r?.season);
@@ -239,6 +284,8 @@ export async function createTask(input: CreateTaskInput, actor: Actor): Promise<
   // task is born waiting: a date sent along is ignored (ADR-0010).
   let dueDate = trig ? null : (input.dueDate ?? (rec ? todayBerlin() : null));
   if (rec && dueDate) dueDate = seasonDate(dueDate, normalizeSeason(rec.season));
+  const after = trig?.after ?? null;
+  if (after) await checkPredecessor(prisma, after.taskId, null);
   const task = await prisma.task.create({
     data: {
       title: input.title,
@@ -247,7 +294,9 @@ export async function createTask(input: CreateTaskInput, actor: Actor): Promise<
       dueDate,
       ...recurrenceColumns(rec),
       notify: input.notify ?? false,
-      triggerRefire: trig?.refire ?? null,
+      triggerRefire: trig ? (trig.refire ?? 'PUSH') : null,
+      afterTaskId: after?.taskId ?? null,
+      afterHours: after?.hours ?? null,
       createdById: actor.userId,
       createdVia: actor.via,
     },
@@ -262,7 +311,7 @@ export async function updateTask(id: number, patch: UpdateTaskInput, actor: Acto
   const dto = await prisma.$transaction(async (tx) => {
     const task = await activeTask(tx, id);
     before = { dueDate: task.dueDate, notify: task.notify };
-    const data: Prisma.TaskUpdateInput = {};
+    const data: Prisma.TaskUncheckedUpdateInput = {};
     if (patch.title !== undefined) data.title = patch.title;
     if (patch.notes !== undefined) data.notes = patch.notes;
     if (patch.priority !== undefined) data.priority = patch.priority;
@@ -277,9 +326,29 @@ export async function updateTask(id: number, patch: UpdateTaskInput, actor: Acto
     }
     const toTrigger = willTrigger && task.triggerRefire === null;
     const fromTrigger = !willTrigger && task.triggerRefire !== null;
-    if (patch.trigger) data.triggerRefire = patch.trigger.refire;
-    if (fromTrigger) Object.assign(data, { triggerRefire: null, hookTokenHash: null, firedAt: null });
-    if (toTrigger) Object.assign(data, { firedAt: null }, recurrenceColumns(null));
+    if (patch.trigger) data.triggerRefire = patch.trigger.refire ?? task.triggerRefire ?? 'PUSH';
+    if (fromTrigger) Object.assign(data, { triggerRefire: null, hookTokenHash: null, firedAt: null }, NO_FOLLOW_UP);
+    if (toTrigger) Object.assign(data, { firedAt: null }, recurrenceColumns(null), NO_FOLLOW_UP);
+
+    // ADR-0011: predecessor and delay. Resending the same predecessor is a no-op
+    // (the sheet resends everything); a different one or none clears a pending
+    // fireAt; only new hours recompute it from the original completion time.
+    if (willTrigger && patch.trigger && patch.trigger.after !== undefined) {
+      const after = patch.trigger.after;
+      if (after === null) {
+        // Only when there is a link to remove: after the predecessor was archived the
+        // sheet resends null, and that must not cancel a still pending fireAt.
+        if (task.afterTaskId !== null) Object.assign(data, NO_FOLLOW_UP);
+      } else if (after.taskId !== task.afterTaskId) {
+        await checkPredecessor(tx, after.taskId, id);
+        Object.assign(data, NO_FOLLOW_UP, { afterTaskId: after.taskId, afterHours: after.hours });
+      } else if (after.hours !== task.afterHours) {
+        data.afterHours = after.hours;
+        if (task.fireAt && task.afterHours !== null) {
+          data.fireAt = followUpFireAt(followUpBase(task.fireAt, task.afterHours), after.hours);
+        }
+      }
+    }
 
     const willRecur = willTrigger
       ? false
@@ -363,7 +432,7 @@ async function record(
     }
     if (!recurring && task.doneAt) throw new TaskError(409, 'Task is already done');
 
-    await tx.completion.create({
+    const completion = await tx.completion.create({
       data: {
         taskId: id,
         userId: actor.userId,
@@ -398,6 +467,20 @@ async function record(
     } else {
       await tx.task.update({ where: { id }, data: { doneAt: new Date() } });
     }
+    // ADR-0011: only "done" schedules the follow-ups, counted from now (the
+    // completion's `at`), even for a back-dated day. The latest completion wins.
+    if (kind === 'DONE') {
+      const followUps = await tx.task.findMany({
+        where: { afterTaskId: id, archivedAt: null, triggerRefire: { not: null }, afterHours: { not: null } },
+        select: { id: true, afterHours: true },
+      });
+      for (const f of followUps) {
+        await tx.task.update({
+          where: { id: f.id },
+          data: { fireAt: followUpFireAt(completion.at, f.afterHours!), fireAtCompletionId: completion.id },
+        });
+      }
+    }
     return dtoById(tx, id);
   });
 }
@@ -417,6 +500,11 @@ export async function undoTask(id: number): Promise<TaskDto> {
     });
     if (!last) throw new TaskError(409, 'Nothing to undo');
     await tx.completion.delete({ where: { id: last.id } });
+    // ADR-0011: a pending follow-up this completion scheduled is cancelled.
+    await tx.task.updateMany({
+      where: { fireAtCompletionId: last.id },
+      data: { fireAt: null, fireAtCompletionId: null },
+    });
     await tx.task.update({
       where: { id },
       data: { dueDate: last.dueDateBefore, doneAt: null },
@@ -440,7 +528,14 @@ export async function fireTask(id: number, now: Date = new Date()): Promise<Fire
   // Conditional update, so two simultaneous fires of a waiting task are one "fired".
   const woke = await prisma.task.updateMany({
     where: { id, dueDate: null },
-    data: { dueDate: today, firedAt: now, notifiedFor: task.notify ? today : task.notifiedFor },
+    data: {
+      dueDate: today,
+      firedAt: now,
+      notifiedFor: task.notify ? today : task.notifiedFor,
+      // ADR-0011: any fire that wakes the task ends a pending scheduled one.
+      fireAt: null,
+      fireAtCompletionId: null,
+    },
   });
   if (woke.count === 1) {
     await pushFired(id, false);
@@ -476,7 +571,19 @@ export async function archiveTask(id: number): Promise<void> {
   await prisma.$transaction(async (tx) => {
     await activeTask(tx, id);
     await tx.task.update({ where: { id }, data: { archivedAt: new Date() } });
+    // ADR-0011: its follow-ups lose the link; a pending fireAt of theirs stays.
+    await tx.task.updateMany({ where: { afterTaskId: id }, data: { afterTaskId: null, afterHours: null } });
   });
+}
+
+/** ADR-0011: what the sheet's "Folgt auf" picker lists: every active task, by title. */
+export async function listChoices(): Promise<{ tasks: { id: number; title: string }[] }> {
+  const rows = await prisma.task.findMany({
+    where: { archivedAt: null, doneAt: null },
+    select: { id: true, title: true },
+  });
+  rows.sort((a, b) => a.title.localeCompare(b.title, 'de') || a.id - b.id);
+  return { tasks: rows };
 }
 
 // ---- search and history (MCP; usable by the web later) -----------------------

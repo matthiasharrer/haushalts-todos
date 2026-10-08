@@ -78,17 +78,42 @@ const berlinTime = new Intl.DateTimeFormat('de-DE', {
 });
 const berlinDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' });
 
-/** Trigger task state (ADR-0010): "wartet", "ausgelöst heute 14:32", "ausgelöst am 3.10.". */
+/**
+ * Trigger task state (ADR-0010, ADR-0011), waiting: "kommt heute 22:15" / "kommt morgen 22:15" /
+ * "kommt Do. 15.10. 22:15" (pending), „nach „X“ + 24 h“ (predecessor, nothing pending), "wartet".
+ * Fired: "ausgelöst heute 14:32", "ausgelöst am 3.10.".
+ */
 export function triggerLabel(
-  trigger: { firedAt: string | null },
+  trigger: {
+    firedAt: string | null;
+    after?: { title: string; hours: number } | null;
+    fireAt?: string | null;
+  },
   dueDate: string | null,
   today: string,
 ): string {
-  if (dueDate === null) return 'wartet';
+  if (dueDate === null) {
+    if (trigger.fireAt) return comesLabel(trigger.fireAt, today);
+    if (trigger.after) return `nach „${trigger.after.title}“ + ${trigger.after.hours} h`;
+    return 'wartet';
+  }
   if (!trigger.firedAt) return dueDate === today ? 'ausgelöst heute' : `ausgelöst am ${dayMonth(dueDate)}`;
   const at = new Date(trigger.firedAt);
   const day = berlinDay.format(at);
   return day === today ? `ausgelöst heute ${berlinTime.format(at)}` : `ausgelöst am ${dayMonth(day)}`;
+}
+
+/** "kommt heute 22:15" / "kommt morgen 22:15" / "kommt Do. 15.10. 22:15" (Berlin time). */
+export function comesLabel(fireAtIso: string, today: string): string {
+  const at = new Date(fireAtIso);
+  const n = daysBetween(today, berlinDay.format(at));
+  const when = n <= 0 ? 'heute' : n === 1 ? 'morgen' : weekdayDate(berlinDay.format(at));
+  return `kommt ${when} ${berlinTime.format(at)}`;
+}
+
+/** "Do. 15.10. um 22:15" / "heute um 22:15" / "morgen um 22:15" for the sheet hint ("Kommt …"). */
+export function comesAtLabel(fireAtIso: string, today: string): string {
+  return comesLabel(fireAtIso, today).replace(/^kommt /, '').replace(/ (\d\d:\d\d)$/, ' um $1');
 }
 
 /** "3.10." */

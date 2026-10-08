@@ -44,7 +44,7 @@ test('TC-73 Anlegen: wartend, nicht auf Startseite, in /api/recurring, kein "Neu
   const aEp = await subscribe(request, ANNA);
   const title = uniq('ZZ-Trigger anlegen');
   const t = await create(request, { title, trigger: TRIGGER, notify: true });
-  expect(t.trigger).toEqual({ refire: 'PUSH', hasToken: false, firedAt: null });
+  expect(t.trigger).toEqual({ refire: 'PUSH', hasToken: false, firedAt: null, after: null, fireAt: null });
   expect(t.dueDate).toBeNull();
   expect(t.recurrence).toBeNull();
   expect(t.notify).toBe(true);

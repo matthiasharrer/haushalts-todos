@@ -11,6 +11,7 @@ import {
   createTask,
   createTaskSchema,
   issueHookToken,
+  listChoices,
   listTasks,
   skipTask,
   undoTask,
@@ -57,6 +58,12 @@ tasks.onError((err, c) => {
 tasks.get('/', async (c) => {
   c.header('Cache-Control', 'no-store');
   return c.json(await listTasks());
+});
+
+// ADR-0011: before any /:id route.
+tasks.get('/choices', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await listChoices());
 });
 
 tasks.post('/', async (c) => c.json(await createTask(await body(c, createTaskSchema), actor(c)), 201));

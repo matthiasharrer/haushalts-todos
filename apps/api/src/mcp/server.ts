@@ -74,6 +74,8 @@ const GERMAN_TASK_ERRORS: Record<string, string> = {
     'Eine Aufgabe kann nicht gleichzeitig wiederkehrend und eine Auslöser-Aufgabe sein. Zum Wechseln die andere Art mit null abschalten (z.B. recurrence: null oder trigger: null).',
   'A waiting trigger task has nothing to do yet':
     'Diese Auslöser-Aufgabe wartet noch auf ihren Auslöser und ist nicht fällig, also gibt es nichts abzuhaken.',
+  'The predecessor must be another active task':
+    'Die Vorgänger-Aufgabe (trigger.after.task_id) muss eine andere aktive Aufgabe sein: nicht archiviert, nicht bereits erledigt und nicht die Aufgabe selbst. Mit search_tasks die richtige id finden.',
   'Only trigger tasks have a hook token': 'Nur Auslöser-Aufgaben haben ein Token.',
   'query must not be empty': 'Der Suchbegriff darf nicht leer sein.',
 };
@@ -134,11 +136,28 @@ const triggerSchema = z
       .describe(
         'Was passiert, wenn der Auslöser feuert, obwohl die Aufgabe schon fällig ist: PUSH (Standard) benachrichtigt erneut, NONE tut nichts.',
       ),
+    after: z
+      .object({
+        task_id: z.number().describe('Die id der Vorgänger-Aufgabe (aus search_tasks oder list_tasks). Muss aktiv sein und darf nicht die Aufgabe selbst sein.'),
+        hours: z.number().describe('Verzögerung in ganzen Stunden, 1 bis 720 (z.B. 24 = einen Tag später).'),
+      })
+      .nullish()
+      .describe(
+        'Folgt auf: Wird die Vorgänger-Aufgabe erledigt (Überspringen zählt nicht), wird diese Aufgabe nach hours Stunden fällig, mit Push, wenn notify an ist. ' +
+          'Bis dahin wartet sie. Bei update_task: weglassen = unverändert, null = Verknüpfung entfernen.',
+      ),
   })
   .describe(
     'Auslöser-Aufgabe: sie wartet unsichtbar (nur in list_recurring), bis Home Assistant sie auslöst, und ist dann fällig. ' +
       'Das Token dafür kann nur in der App erzeugt werden, nicht hier. Nicht zusammen mit recurrence.',
   );
+
+/** Tool input -> domain input (snake_case task_id -> taskId). */
+function triggerInput<T extends { after?: { task_id: number; hours: number } | null } | null | undefined>(trigger: T) {
+  if (!trigger) return trigger;
+  const { after, ...rest } = trigger;
+  return after === undefined ? rest : { ...rest, after: after === null ? null : { taskId: after.task_id, hours: after.hours } };
+}
 
 const notifySchema = z
   .boolean()
@@ -182,7 +201,7 @@ export function buildMcpServer(): McpServer {
         'sortiert, auch die, die erst in Wochen wieder dran sind. Mit recurrenceLabel ("alle 2 Wochen, März–Oktober"), ' +
         'resting (true = saisonale Aufgabe, die gerade ruht und erst zum Saisonstart wieder fällig wird) ' +
         'und lastDone (wer es zuletzt wann gemacht hat). Enthält auch Auslöser-Aufgaben (trigger, triggerLabel ' +
-        '"Auslöser · wartet" oder "Auslöser · ausgelöst heute"): die stehen erst auf der Startseite, wenn sie ausgelöst wurden.',
+        '"Auslöser · wartet", "Auslöser · kommt morgen 22:15", "Auslöser · nach „X“ + 24 h" oder "Auslöser · ausgelöst heute"): die stehen erst auf der Startseite, wenn sie ausgelöst wurden.',
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
     },
@@ -241,7 +260,7 @@ export function buildMcpServer(): McpServer {
         'Legt eine neue Aufgabe an (einmalig, wiederkehrend oder auf Auslöser). Sie wird der verbundenen Person ' +
         'als Ersteller zugeschrieben. Ohne due_date ist sie "irgendwann"; eine wiederkehrende ' +
         'Aufgabe ohne due_date ist heute fällig. Mit trigger entsteht eine wartende Auslöser-Aufgabe ' +
-        '(due_date wird ignoriert).',
+        '(due_date wird ignoriert); mit trigger.after {task_id, hours} wird sie stattdessen hours Stunden nach dem Erledigen einer anderen Aufgabe fällig.',
       inputSchema: z.object({
         title: z.string().describe('Titel, kurz und knapp (max. 200 Zeichen).'),
         notes: z.string().optional().describe('Notizen, optional.'),
@@ -261,7 +280,7 @@ export function buildMcpServer(): McpServer {
           priority: args.priority,
           dueDate: args.due_date,
           recurrence: args.recurrence,
-          trigger: args.trigger,
+          trigger: triggerInput(args.trigger),
           notify: args.notify,
         });
         return taskForModel(await createTask(input, actor), todayBerlin());
@@ -298,7 +317,7 @@ export function buildMcpServer(): McpServer {
           priority: rest.priority,
           dueDate: rest.due_date,
           recurrence: rest.recurrence,
-          trigger: rest.trigger,
+          trigger: triggerInput(rest.trigger),
           notify: rest.notify,
         });
         return taskForModel(await updateTask(id, patch, actor), todayBerlin());

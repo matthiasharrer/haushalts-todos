@@ -69,8 +69,8 @@
     create: async (input: TaskPatch & { title: string }) => {
       const task = await mutate(() => createTask(input));
       creating = false;
-      if (task.trigger) {
-        // A new trigger task gets its token right away; the task exists even if this fails.
+      if (task.trigger && !task.trigger.after) {
+        // A new trigger task gets its token right away (ADR-0011: not a follow-up, it rarely needs HA); the task exists even if this fails.
         try {
           const { token, url } = await issueHookToken(task.id);
           issued = { taskId: task.id, title: task.title, url, token };

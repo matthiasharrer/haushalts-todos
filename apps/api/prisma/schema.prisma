@@ -84,6 +84,15 @@ model Task {
   triggerRefire   TriggerRefire?
   hookTokenHash   String?
   firedAt         DateTime?
+  /// Follow-up (ADR-0011): this trigger task fires `afterHours` after the
+  /// completion of `afterTask`. fireAt = the pending fire time;
+  /// fireAtCompletionId = the completion that scheduled it (no FK; undo clears it).
+  afterTaskId        Int?
+  afterTask          Task?     @relation("FollowUp", fields: [afterTaskId], references: [id])
+  followUps          Task[]    @relation("FollowUp")
+  afterHours         Int?
+  fireAt             DateTime?
+  fireAtCompletionId Int?
   doneAt          DateTime?
   archivedAt      DateTime?
   createdById     Int

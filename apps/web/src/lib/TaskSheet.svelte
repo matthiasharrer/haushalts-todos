@@ -3,9 +3,9 @@
   // Native <dialog>: Escape and the backdrop tap close it. Actions are async
   // callbacks owned by the parent; a rejection shows inline here.
   import { onMount, tick } from 'svelte';
-  import { issueHookToken, messageOf, type Mode, type Priority, type Refire, type Task, type TaskPatch, type Unit } from './api';
+  import { issueHookToken, listChoices, messageOf, type Mode, type Priority, type Refire, type Task, type TaskPatch, type Unit } from './api';
   import ConfirmDialog from './ConfirmDialog.svelte';
-  import { MONTHS } from './format';
+  import { comesAtLabel, MONTHS } from './format';
   import HookTokenDialog from './HookTokenDialog.svelte';
   import Icon from './Icon.svelte';
   import { linkify } from './linkify';
@@ -43,6 +43,10 @@
   let hasToken = $state(t?.trigger?.hasToken ?? false);
   let issued = $state<{ url: string; token: string } | null>(null);
   let confirmToken = $state(false);
+  // ADR-0011: follows another task, N hours after it is done. '' = no predecessor.
+  let afterId = $state<number | ''>(t?.trigger?.after?.taskId ?? '');
+  let afterHours = $state(t?.trigger?.after?.hours ?? 24);
+  let choices = $state<{ id: number; title: string }[]>([]);
   let every = $state(t?.recurrence?.every ?? 1);
   let unit = $state<Unit>(t?.recurrence?.unit ?? 'WEEK');
   let mode = $state<Mode>(t?.recurrence?.mode ?? 'AFTER_COMPLETION');
@@ -63,8 +67,16 @@
   const isWaiting = $derived(t?.trigger != null && t.dueDate === null);
   const canSkip = $derived(isRecurring || (t?.trigger != null && t.dueDate !== null));
   const everyValid = $derived(Number.isInteger(every) && every >= 1 && every <= 1000);
+  const hoursValid = $derived(Number.isInteger(afterHours) && afterHours >= 1 && afterHours <= 720);
   const canSave = $derived(
-    title.trim() !== '' && !busy && (!repeat || (everyValid && dueDate !== '')),
+    title.trim() !== '' &&
+      !busy &&
+      (!repeat || (everyValid && dueDate !== '')) &&
+      (kind !== 'trigger' || afterId === '' || hoursValid),
+  );
+  // The pending time only describes the saved predecessor; picking another one clears it.
+  const pendingAt = $derived(
+    t?.trigger?.fireAt && afterId === t.trigger.after?.taskId && afterHours === t.trigger.after.hours ? t.trigger.fireAt : null,
   );
 
   function yesterday(): string {
@@ -75,6 +87,11 @@
   onMount(() => {
     dialog.showModal();
     fitNotes();
+    // The picker is optional: if this fails the select just offers "Keine".
+    listChoices().then(
+      (r) => (choices = r.tasks.filter((c) => c.id !== t?.id)),
+      () => {},
+    );
   });
 
   // The notes textarea grows with its content (field-sizing isn't in every browser yet).
@@ -142,7 +159,10 @@
         recurrence: repeat
           ? { every, unit, mode, season: seasonal ? { from: seasonFrom, to: seasonTo } : null }
           : null,
-        trigger: kind === 'trigger' ? { refire } : null,
+        trigger:
+          kind === 'trigger'
+            ? { refire, after: afterId === '' ? null : { taskId: afterId, hours: afterHours } }
+            : null,
       }),
     );
   };
@@ -270,8 +290,44 @@
             <span>Nichts tun</span>
           </label>
         </fieldset>
+        <div class="field">
+          <label class="label" for="after">Folgt auf</label>
+          <select id="after" bind:value={afterId}>
+            <option value="">Keine (nur Home Assistant)</option>
+            {#each choices as c}<option value={c.id}>{c.title}</option>{/each}
+            {#if afterId !== '' && !choices.some((c) => c.id === afterId) && t?.trigger?.after}
+              <option value={afterId}>{t.trigger.after.title}</option>
+            {/if}
+          </select>
+          {#if afterId !== ''}
+            <div class="every-row">
+              <span>nach</span>
+              <input
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="720"
+                bind:value={afterHours}
+                aria-label="Stunden"
+                class="every"
+              />
+              <span>Stunden</span>
+            </div>
+            {#if pendingAt}
+              <p class="hint">Kommt {comesAtLabel(pendingAt, today)}</p>
+            {:else if !hoursValid}
+              <p class="hint">Bitte 1 bis 720 Stunden eintragen.</p>
+            {:else}
+              <p class="hint">Wird fällig, sobald „{choices.find((c) => c.id === afterId)?.title ?? t?.trigger?.after?.title ?? 'die Aufgabe'}“ abgehakt ist.</p>
+            {/if}
+          {/if}
+        </div>
         {#if creating || isWaiting}
-          <p class="hint">Die Aufgabe wartet unsichtbar, bis Home Assistant sie auslöst. Dann ist sie fällig.</p>
+          <p class="hint">
+            {afterId === ''
+              ? 'Die Aufgabe wartet unsichtbar, bis Home Assistant sie auslöst. Dann ist sie fällig.'
+              : 'Die Aufgabe wartet unsichtbar bis zu dieser Zeit (oder bis Home Assistant sie auslöst). Dann ist sie fällig.'}
+          </p>
         {/if}
       {/if}
 
@@ -346,6 +402,14 @@
               </label>
             </div>
           {/if}
+        </div>
+      {/if}
+
+      {#if t && t.followUps.length > 0}
+        <div class="field">
+          {#each t.followUps as f}
+            <p class="hint">Danach: {f.title} (nach {f.hours} h)</p>
+          {/each}
         </div>
       {/if}
 

@@ -299,9 +299,11 @@ test('TC-36 recurring far out is not on home; /api/recurring lists active recurr
   expect(ids).toEqual(expect.arrayContaining([far.id, soon.id, sameDay.id]));
   expect(ids).not.toContain(oneOff.id);
   expect(ids).not.toContain(archived.id);
-  expect(body.tasks.every((x: any) => x.recurrence !== null)).toBe(true);
+  // trigger tasks (ADR-0010, created by other specs in the shared DB) follow the recurring ones
+  const recurringOnly = body.tasks.filter((x: any) => x.trigger === null);
+  expect(recurringOnly.every((x: any) => x.recurrence !== null)).toBe(true);
   // sorted by dueDate, then id
-  const keys = body.tasks.map((x: any) => [x.dueDate, x.id]);
+  const keys = recurringOnly.map((x: any) => [x.dueDate, x.id]);
   const sorted = [...keys].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1]));
   expect(keys).toEqual(sorted);
   expect(ids.indexOf(far.id)).toBeLessThan(ids.indexOf(sameDay.id)); // same date: lower id first

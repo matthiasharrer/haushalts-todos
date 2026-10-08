@@ -34,6 +34,10 @@ export interface Trigger {
   hasToken: boolean;
   /** ISO instant of the last fire. */
   firedAt: string | null;
+  /** ADR-0011: follows another task, `hours` after it is done. */
+  after: { taskId: number; title: string; hours: number } | null;
+  /** ADR-0011: ISO instant a pending follow-up fires. */
+  fireAt: string | null;
 }
 
 export interface Task {
@@ -46,6 +50,8 @@ export interface Task {
   /** Push when it becomes due (ADR-0009). */
   notify: boolean;
   trigger: Trigger | null;
+  /** ADR-0011: active trigger tasks that follow this one. */
+  followUps: { id: number; title: string; hours: number }[];
   /** Seasonal chore out of season and not due yet (ADR-0008). */
   resting: boolean;
   createdBy: { id: number; displayName: string };
@@ -67,7 +73,7 @@ export interface TaskPatch {
   recurrence?: Recurrence | null;
   notify?: boolean;
   /** Send { refire } to make it a trigger task; null turns that off. */
-  trigger?: { refire: Refire } | null;
+  trigger?: { refire: Refire; after?: { taskId: number; hours: number } | null } | null;
 }
 
 /** An API failure with a message that is safe to show to the user. */
@@ -130,6 +136,8 @@ export const undoTask = (id: number) => request<Task>('POST', `/api/tasks/${id}/
 /** Generates or replaces the trigger task's token; the only time it is ever returned. */
 export const issueHookToken = (id: number) =>
   request<{ token: string; url: string }>('POST', `/api/tasks/${id}/hook-token`);
+/** ADR-0011: every active task, for the "Folgt auf" picker. */
+export const listChoices = () => request<{ tasks: { id: number; title: string }[] }>('GET', '/api/tasks/choices');
 export const deleteTask = (id: number) => request<void>('DELETE', `/api/tasks/${id}`);
 
 export interface McpConfig {

@@ -1,6 +1,7 @@
 // The impure half of daily pushes: load, plan (notifications.ts), record, send.
 import { prisma } from '../db.js';
 import { planDaily } from './notifications.js';
+import { runFollowUpTick } from './followUpTick.js';
 import { sendToSubscriptions } from './push.js';
 
 let running = false;
@@ -54,6 +55,11 @@ export async function runNotifyTick(now: Date = new Date()): Promise<void> {
 export function startNotifyTicker(): void {
   const every = Number(process.env.PUSH_TICK_MS ?? 60_000);
   const ms = Number.isFinite(every) && every > 0 ? every : 60_000;
-  setInterval(() => void runNotifyTick(), ms).unref();
-  setTimeout(() => void runNotifyTick(), Math.min(5_000, ms)).unref();
+  // ADR-0011: scheduled follow-up fires ride the same tick (own guard, own try/catch).
+  const tick = () => {
+    void runNotifyTick();
+    void runFollowUpTick();
+  };
+  setInterval(tick, ms).unref();
+  setTimeout(tick, Math.min(5_000, ms)).unref();
 }

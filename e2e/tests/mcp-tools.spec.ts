@@ -264,3 +264,36 @@ test('TC-56 seasonal chores via MCP: season in/out, label, resting, German error
   expect(cleared.recurrenceLabel).not.toContain(label);
   expect(cleared.resting).toBe(false);
 });
+
+test('TC-94 Folgt auf per MCP: anlegen, Labels, nach dem Erledigen "kommt …", entfernen, deutscher Fehler', async ({ request }) => {
+  const pTitle = uniq('ZZ-FU MCP P');
+  const p = await callJson(request, m.accessToken, 'add_task', { title: pTitle });
+  const f = await callJson(request, m.accessToken, 'add_task', {
+    title: uniq('ZZ-FU MCP F'),
+    trigger: { after: { task_id: p.id, hours: 24 } },
+  });
+  expect(f.dueDate).toBeNull();
+  expect(f.trigger.after).toEqual({ taskId: p.id, title: pTitle, hours: 24 });
+  expect(f.triggerLabel).toBe(`Auslöser · nach „${pTitle}“ + 24 h`);
+
+  const listed = async () =>
+    (await callJson(request, m.accessToken, 'list_recurring', {})).tasks.find((t: any) => t.id === f.id);
+  expect((await listed()).triggerLabel).toBe(`Auslöser · nach „${pTitle}“ + 24 h`);
+
+  await callJson(request, m.accessToken, 'complete_task', { id: p.id });
+  expect((await listed()).triggerLabel).toMatch(/^Auslöser · kommt (heute|morgen) \d\d:\d\d$/);
+  const got = await callJson(request, m.accessToken, 'get_task', { id: p.id });
+  expect(got.task.followUps).toEqual([{ id: f.id, title: f.title, hours: 24 }]);
+
+  const removed = await callJson(request, m.accessToken, 'update_task', { id: f.id, trigger: { after: null } });
+  expect(removed.trigger.after).toBeNull();
+  expect(removed.triggerLabel).toBe('Auslöser · wartet');
+
+  for (const bad of [999999, f.id]) {
+    const r = await callTool(request, m.accessToken, 'update_task', { id: f.id, trigger: { after: { task_id: bad, hours: 24 } } });
+    expect(r.isError, `task_id ${bad}`).toBe(true);
+    expect(textOf(r)).toContain('Vorgänger-Aufgabe');
+  }
+  const hours = await callTool(request, m.accessToken, 'update_task', { id: f.id, trigger: { after: { task_id: p.id, hours: 0 } } });
+  expect(hours.isError).toBe(true);
+});

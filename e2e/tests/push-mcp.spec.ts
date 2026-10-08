@@ -58,7 +58,7 @@ test('TC-81 MCP: Auslöser-Aufgabe anlegen, in list_recurring sehen, zur einmali
 
   const title = uniq('MCP Wäsche aufhängen');
   const created = await seen('add_task', { title, trigger: { refire: 'PUSH' }, notify: true });
-  expect(created.trigger).toEqual({ refire: 'PUSH', hasToken: false, firedAt: null });
+  expect(created.trigger).toEqual({ refire: 'PUSH', hasToken: false, firedAt: null, after: null, fireAt: null });
   expect(created.dueDate).toBeNull();
   expect(created.triggerLabel).toBe('Auslöser · wartet');
 
