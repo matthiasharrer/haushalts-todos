@@ -5,22 +5,21 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-08 (`v0.6.0` tagged: follow-ups, ADR-0011)_
+_Last updated: 2026-10-08 (deployed through `v0.6.0`; open: Tina's push, real laundry run)_
 
 ## Next — MVP in real use
 
 The MVP is deployed. **Use it for real** for a few weeks before building
 more.
 
-Matthias pulled two features forward (2026-10-04):
+Open by hand (Matthias):
 
-1. **Deploy `v0.4.0`** (Matthias): set `HOOK_BASE_URL` to the in-cluster
-   service URL (else the HA snippet shows the external, Authelia-protected
-   origin). Push egress is open. Then TC-71 with Tina and TC-82 with the real
-   washer; bugs come in separately.
-2. **Follow-ups (ADR-0011)** released as `v0.6.0` (2026-10-08). Open: deploy
-   (Matthias; the migration rebuilds the `Task` table, no data loss), then
-   TC-95 with the real laundry.
+1. **Tina's push (TC-71):** her app works; whether her phone gets pushes is
+   unconfirmed. Check: Einstellungen → "Auf diesem Gerät" on → "Test senden"
+   on her phone.
+2. **Real laundry chain (TC-95, `v0.6.0`):** "Wäsche aufräumen" follows
+   "Wäsche aufhängen" by 24 h; run it once for real. Also the real washer
+   automation end to end (TC-82 so far ran the HA action by hand).
 
 ## After the MVP
 

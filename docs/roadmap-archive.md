@@ -5,6 +5,11 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-08
 
+- **Deployed through `v0.6.0`** (Matthias): `HOOK_BASE_URL` set, the app works
+  for Tina, push works on Matthias's phone, and the HA `rest_command` fired a
+  trigger task with a push (run by hand in HA, not yet from the real
+  automation).
+
 - **Follow-ups (ADR-0011), `v0.6.0`.** A trigger task can follow another task: N hours
   (1–720) after it's done, it fires like an HA trigger (due, push). For the
   laundry chain "Wäsche aufhängen" → 24 h → "Wäsche aufräumen". The delay is in
