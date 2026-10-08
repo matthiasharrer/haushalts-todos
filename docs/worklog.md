@@ -19,6 +19,7 @@
 - e2e time seam: `setFireAt()` in `e2e/support/tasks.ts` writes `fireAt` into
   the e2e DB. Prisma stores DateTime in SQLite as ISO text with `+00:00`. The
   tick compares it as text, which is safe because the format is fixed.
+- Released `v0.6.0` on Matthias's go.
 - Cosmetic, pre-existing: the row's sub-line puts a "·" before the bell icon
   ("wartet · 🔔"). Not touched.
 

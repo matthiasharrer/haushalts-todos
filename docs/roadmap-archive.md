@@ -5,7 +5,7 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-08
 
-- **Follow-ups (ADR-0011).** A trigger task can follow another task: N hours
+- **Follow-ups (ADR-0011), `v0.6.0`.** A trigger task can follow another task: N hours
   (1–720) after it's done, it fires like an HA trigger (due, push). For the
   laundry chain "Wäsche aufhängen" → 24 h → "Wäsche aufräumen". The delay is in
   hours, not days: days on calendar dates would make it due about 9 h after
