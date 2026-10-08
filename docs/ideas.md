@@ -83,3 +83,10 @@
 
 - **Quiet hours for pushes:** a follow-up can fire at 2 a.m. Matthias: fine,
   the phone stays silent at night anyway. Revisit if it annoys.
+
+## From real use, 2026-10-08
+
+- **Stale UI after a deploy:** an app left open in the background keeps the
+  old bundle (index.html is `no-cache`, but the SPA never reloads). Matthias
+  missed „Folgt auf“ until he closed and reopened the app. Option: poll a
+  version (e.g. on `visibilitychange`) and show „Neue Version, neu laden“.
