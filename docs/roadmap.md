@@ -21,10 +21,6 @@ Matthias pulled two features forward (2026-10-04):
 2. **Follow-ups (ADR-0011)** released as `v0.6.0` (2026-10-08). Open: deploy
    (Matthias; the migration rebuilds the `Task` table, no data loss), then
    TC-95 with the real laundry.
-3. **Due times** (Matthias, 2026-10-08: "Uhrzeiten für Fälligkeiten generell
-   angehen"): own ADR next. Collect his use cases first; they drive sections,
-   in-day "overdue", push at the time, recurring chores with a time, digest,
-   MCP.
 
 ## After the MVP
 
@@ -33,3 +29,6 @@ Decide after a few weeks of real use, guided by what hurts:
 - Tune the urgency constants (ADR-0005).
 - Per-task history view.
 - Anything from `ideas.md` that turns out to be missed.
+- **Due times** (pushed back by Matthias, 2026-10-08): own ADR when it comes
+  up again. Collect his use cases first; they drive sections, in-day
+  "overdue", push at the time, recurring chores with a time, digest, MCP.
