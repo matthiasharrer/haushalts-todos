@@ -3,6 +3,15 @@
 Shipped roadmap entries, newest first. The reasoning is in `decisions/`, the
 test evidence in `testing.md`'s run log.
 
+## 2026-10-08
+
+- **Readable notes, `v0.5.0`.** Notes were only visible in a 2-line textarea
+  inside the edit sheet, links not clickable (Matthias, on an LLM-written
+  task with shop links). Now: a note icon in the list row; the sheet shows
+  notes as full text with clickable links (label = host + path, query and
+  fragment hidden; `href` unchanged) and a pencil to edit; the textarea grows
+  with its content. Plain text only, no Markdown, no `{@html}`. TC-83…86.
+
 ## 2026-10-05
 
 - **Header title goes home, `v0.4.1`.** Tapping "Haushalt" in the app bar

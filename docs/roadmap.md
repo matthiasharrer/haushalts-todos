@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-05 (`v0.4.1` tagged: header title links to Aufgaben)_
+_Last updated: 2026-10-08 (`v0.5.0` tagged: readable notes with clickable links)_
 
 ## Next — MVP in real use
 

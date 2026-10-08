@@ -4,14 +4,14 @@
 > every time. **This process is binding.** Cases are written from what a
 > feature *should* do; a script is one way of running a case.
 >
-> _Last updated: 2026-10-04_
+> _Last updated: 2026-10-08_
 
 ## Running
 
 ```bash
 npm run e2e                                    # build, boot :3201 on .e2e/e2e.db, run, tear down
 PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright npm run e2e   # if browsers are "missing"
-npm run test:unit                              # pure domain logic (TC-06…13)
+npm run test:unit                              # pure domain logic (TC-06…13) + web helpers (linkify)
 ```
 
 ## The process
@@ -88,6 +88,15 @@ feature.
 | TC-33 | **Delete:** "Löschen" in the sheet asks for confirmation; confirming removes the task from the list. Cancelling keeps it. |
 | TC-34 | **Phone layout:** no horizontal scroll at 390 px; the check button and every sheet button are at least 44×44 px; due info reads in German ("heute", "seit 3 Tagen", "morgen", "in 4 Tagen", "Fr. 17.10."). |
 | TC-35 | **Errors are visible:** if an API call fails (server returns 500), the user sees a German error message and the list isn't silently wrong; Save is disabled while the title is empty. |
+
+### Readable notes (scripted e2e at 390×844: `e2e/tests/notes-ui.spec.ts`; unit: `apps/web/src/lib/linkify.test.ts`)
+
+| ID    | Case |
+| ----- | ---- |
+| TC-83 | **List marker:** a task with notes shows a small note icon in its grey sub-line ("hat Notizen"); a task without notes doesn't. |
+| TC-84 | **Read view:** opening a task with notes shows them as full text (line breaks kept, nothing cut off), no textarea. URLs are links (new tab); the label is host + path without `www.`, query, fragment or trailing slash, the `href` is the full URL. Sentence punctuation and a wrapping `(…)` stay outside the link. No horizontal scroll from long URLs. |
+| TC-85 | **Edit:** the pencil ("Notizen bearbeiten") swaps in the textarea, focused, cursor at the end, tall enough to show the whole text; it grows while typing. Saving keeps the text. |
+| TC-86 | **No notes:** the sheet shows the empty textarea directly, two lines high. |
 
 ### Home vs. recurring view (ADR-0007)
 
@@ -169,6 +178,7 @@ Unit: `apps/api/src/lib/hookToken.test.ts` (token), `urgency.test.ts` / `notific
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-08 (release) | `v0.5.0`: readable notes, TC-83…86 (new) + `linkify` unit tests, full suite + unit | **e2e 75/75** (25.4 s), **unit 49/49 (api) + 4/4 (web)**, svelte-check clean. Lead built and ran it (small frontend-only change, no implementer agent, so no separate runner). Lead eyes at 390×844 with the real Babyfon notes: list icon, read view with `subtel.de/en/…html` and `kaufland.at/product/497819613` (tracking query hidden), edit grows 448 → 496 px on two new lines, empty notes 2 lines. |
 | 2026-10-05 (release) | `v0.4.1`: TC-37 extended (header title → Aufgaben from Routinen and Einstellungen), full suite + unit | **e2e 71/71** (22.6 s), **unit 49/49**, tsc + svelte-check clean, lead run. Lead eyes at 390×844: Einstellungen → tap "Haushalt" → `#/`, Aufgaben. |
 | 2026-10-04 | ADR-0010 trigger tasks: TC-72…81 (new), TC-30/37–40 amended, TC-61/66 extended (failed test push → 502), full suite + unit | **e2e 71/71** (22.4 s), **unit 49/49**, tsc + svelte-check clean, lead run after review. Lead eyes at 390×844: create sheet with Auslöser, token dialog with YAML, fire via curl (fired → repushed → wrong token 401), fired task on home with bolt, completing returns it to waiting. **TC-82 (real HA) open: Matthias.** |
 | 2026-10-04 | ADR-0009 push: TC-58…70 (new), full suite + unit | **e2e 63/63** (20.1 s), **unit 43/43**, tsc + svelte-check clean, lead run after review. Lead found in review: the daily run set `notifiedFor`, so with two digest-off users the later one missed a bell task (added a TC-60 unit case, run no longer sets it); an update now only pushes "due now" when it moved the date or turned `notify` on. Manifest gets `crossorigin="use-credentials"` (else fetched without the Authelia cookie). Lead eyes at 390×844: Settings card, sheet switch. **TC-71 (real Android) open: Matthias.** |

@@ -3,6 +3,23 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-08 — Readable notes, `v0.5.0`
+
+- Trigger: an LLM (via MCP) created "Ersatzakku für Babyphone" with long notes
+  and shop links; in the app they only showed in a 2-line textarea, links not
+  clickable, and the list didn't hint that notes exist.
+- Matthias's calls: list icon only (no one-line preview); shorten links but
+  keep the path, drop tracking query in the label; textarea auto-grows.
+  The lead chose: pencil button only (tapping the text doesn't switch to edit,
+  so long-press/copy and link taps don't pop the keyboard); no Markdown.
+- Auto-grow is JS (`scrollHeight`), not `field-sizing: content`, which isn't in
+  every browser yet. It must run after `showModal()`, since a closed dialog
+  measures 0.
+- The web workspace got its own `test:unit` (`tsx --test`), wired into the root
+  script. Test files reference `@types/node` via a triple-slash directive so
+  svelte-check passes.
+- Port 5173 was taken by xitl's dev server, so Haushalt runs on 5174 this session.
+
 ## 2026-10-05 — Header title links home, `v0.4.1`
 
 - Matthias wanted the to-do list as the default page and the header title to
