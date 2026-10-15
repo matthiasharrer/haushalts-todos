@@ -1,6 +1,6 @@
 <script lang="ts">
   // Inline SVG icons (24x24, 2px round stroke; geometry after Lucide, paths hand-rolled).
-  export type IconName = 'check' | 'plus' | 'x' | 'chevron-down' | 'repeat' | 'list' | 'settings' | 'bell' | 'bolt' | 'copy' | 'note' | 'pencil';
+  export type IconName = 'check' | 'plus' | 'x' | 'chevron-down' | 'repeat' | 'list' | 'settings' | 'bell' | 'bolt' | 'copy' | 'note' | 'pencil' | 'calendar' | 'flag';
 
   const icons: Record<IconName, string[]> = {
     check: ['M5 12.5l4.5 4.5L19 7.5'],
@@ -17,6 +17,8 @@
     copy: ['M9 9h11v11H9z', 'M5 15V5h10'],
     note: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v5h5', 'M16 13H8', 'M16 17H8', 'M10 9H8'],
     pencil: ['M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z', 'M15 5l4 4'],
+    calendar: ['M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z', 'M3 10h18', 'M8 3v4', 'M16 3v4'],
+    flag: ['M5 22V4h12l-2 4 2 4H5'],
     repeat: ['M17 2l4 4-4 4', 'M3 11V9a3 3 0 0 1 3-3h15', 'M7 22l-4-4 4-4', 'M21 13v2a3 3 0 0 1-3 3H3'],
   };
 

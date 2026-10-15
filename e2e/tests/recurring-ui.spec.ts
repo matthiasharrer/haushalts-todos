@@ -145,7 +145,7 @@ test('TC-40 Einmalige Aufgabe wird wiederkehrend; Abhaken in Wiederkehrend mit R
   const input = page.getByRole('textbox', { name: 'Neue Aufgabe' });
   await input.fill(title);
   await input.press('Enter');
-  await expect(section(page, 'Irgendwann').getByText(title)).toBeVisible();
+  await expect(section(page, 'Fällig').getByText(title)).toBeVisible();
 
   await row(page, title).locator('.task-body').click();
   const dlg = sheet(page);

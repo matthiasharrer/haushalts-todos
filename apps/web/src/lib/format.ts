@@ -14,6 +14,22 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((utc(to) - utc(from)) / 86_400_000);
 }
 
+/** The calendar day `n` days after `date` (negative: before). */
+export function addDays(date: string, n: number): string {
+  return new Date(utc(date) + n * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Quick-add "Wochenende": the coming Saturday; on Saturday or Sunday, today. */
+export function weekendDate(today: string): string {
+  const day = new Date(utc(today)).getUTCDay();
+  return day === 0 || day === 6 ? today : addDays(today, 6 - day);
+}
+
+/** Today in Europe/Berlin, for before the API has said what today is. */
+export function berlinToday(): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
+}
+
 /** "Fr. 17.10." */
 export function weekdayDate(date: string): string {
   const d = new Date(utc(date));

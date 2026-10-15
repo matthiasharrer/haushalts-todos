@@ -11,6 +11,14 @@
   done from now on, to derive `priority` from context, and to name both in its
   reply so the person can correct them. Prompt-only, no behaviour change.
 - Unreleased; Claude clients pick it up after deploy (reconnect if cached).
+- Quick-add chips (Matthias's call after three mockups on a private design
+  canvas): row only while focused, „Wichtig“ first because at 390 px the end
+  of the row scrolls out of view. Choice kept across blur while there is text.
+  Keyboard jump: scroll restore on blur + `interactive-widget`; iPhone check
+  open. Gotcha: chip buttons need `mousedown` preventDefault, or iOS (buttons
+  don't take focus there) blurs the field and the row vanishes mid-tap.
+- xitl's dev server was on :5173; stopped it (`xitl-mcp/scripts/app.sh stop`)
+  so Haushalt could run there.
 
 ## 2026-10-08 — „Neue Version verfügbar“ banner (ADR-0012)
 

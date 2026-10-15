@@ -14,6 +14,7 @@
     type TaskList,
     type TaskPatch,
   } from '../lib/api';
+  import { addDays, berlinToday, weekdayDate, weekendDate } from '../lib/format';
   import Icon from '../lib/Icon.svelte';
   import { shared, showToast } from '../lib/store.svelte';
   import TaskRow from '../lib/TaskRow.svelte';
@@ -32,6 +33,84 @@
   let editing = $state<Task | null>(null);
   let newTitle = $state('');
   let addInput: HTMLInputElement;
+  let addForm: HTMLFormElement;
+
+  // Quick-add options: due "Heute" by default, removable with one tap. The
+  // chip row shows only while the bar has focus; the choice survives a blur
+  // as long as there is text, and resets once the field is empty again.
+  type DueChoice = 'today' | 'tomorrow' | 'weekend' | 'date' | 'none';
+  const DUE_OPTIONS: { key: DueChoice; label: string }[] = [
+    { key: 'today', label: 'Heute' },
+    { key: 'tomorrow', label: 'Morgen' },
+    { key: 'weekend', label: 'Wochenende' },
+  ];
+  let addDue = $state<DueChoice>('today');
+  let addDate = $state('');
+  let addHigh = $state(false);
+  let addOpen = $state(false);
+  let savedScroll = 0;
+
+  const today = $derived(list?.today ?? berlinToday());
+  const addHint = $derived(
+    [
+      addDue === 'none' && 'ohne Datum',
+      addDue === 'tomorrow' && 'morgen',
+      addDue === 'weekend' && 'Wochenende',
+      addDue === 'date' && weekdayDate(addDate),
+    ].find(Boolean) || null,
+  );
+
+  function dueDateFor(): string | undefined {
+    if (addDue === 'today') return today;
+    if (addDue === 'tomorrow') return addDays(today, 1);
+    if (addDue === 'weekend') return weekendDate(today);
+    if (addDue === 'date') return addDate || undefined;
+    return undefined;
+  }
+
+  function resetAddOptions() {
+    addDue = 'today';
+    addDate = '';
+    addHigh = false;
+  }
+
+  /** Tapping a chip or + must not blur the field (keyboard stays, row stays). */
+  const keepFocus = (e: MouseEvent) => e.preventDefault();
+
+  const pickDue = (key: DueChoice) => (addDue = addDue === key ? 'none' : key);
+
+  function pickDate(e: Event) {
+    addDate = (e.currentTarget as HTMLInputElement).value;
+    addDue = addDate ? 'date' : 'none';
+  }
+
+  function openPicker(e: Event) {
+    try {
+      (e.currentTarget as HTMLInputElement).showPicker();
+    } catch {
+      // not supported or not allowed: the native tap behaviour opens it anyway
+    }
+  }
+
+  function onAddFocusIn() {
+    if (addOpen) return;
+    savedScroll = window.scrollY;
+    addOpen = true;
+  }
+
+  function onAddFocusOut(e: FocusEvent) {
+    if (addForm.contains(e.relatedTarget as Node | null)) return;
+    addOpen = false;
+    if (!newTitle.trim()) resetAddOptions();
+    // Phone browsers scroll the page when the keyboard opens for a fixed bar;
+    // put the list back where it was once the keyboard is gone.
+    const y = savedScroll;
+    const restore = () => {
+      if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+    };
+    window.visualViewport?.addEventListener('resize', restore, { once: true });
+    setTimeout(restore, 400);
+  }
 
   const total = $derived(
     list ? SECTIONS.reduce((n, s) => n + list!.sections[s.key].length, 0) : 0,
@@ -82,8 +161,12 @@
     const title = newTitle.trim();
     if (!title) return;
     try {
-      await mutate(() => createTask(title));
+      const dueDate = dueDateFor();
+      await mutate(() =>
+        createTask({ title, ...(dueDate && { dueDate }), ...(addHigh && { priority: 'HIGH' as const }) }),
+      );
       newTitle = '';
+      resetAddOptions();
     } catch (err) {
       showToast(messageOf(err), { error: true });
     }
@@ -161,18 +244,72 @@
   {/each}
 {/if}
 
-<form class="quick-add" onsubmit={quickAdd}>
-  <input
-    bind:this={addInput}
-    bind:value={newTitle}
-    type="text"
-    placeholder="Neue Aufgabe…"
-    aria-label="Neue Aufgabe"
-    enterkeyhint="done"
-    autocomplete="off"
-    maxlength="200"
-  />
-  <button type="submit" class="add-btn" aria-label="Hinzufügen"><Icon name="plus" /></button>
+<form
+  class="quick-add"
+  bind:this={addForm}
+  onsubmit={quickAdd}
+  onfocusin={onAddFocusIn}
+  onfocusout={onAddFocusOut}
+>
+  {#if addOpen}
+    <div class="add-opts" role="group" aria-label="Fälligkeit und Wichtigkeit">
+      <button
+        type="button"
+        class="opt"
+        aria-pressed={addHigh}
+        onmousedown={keepFocus}
+        onclick={() => (addHigh = !addHigh)}
+      >
+        <Icon name="flag" size={16} />Wichtig
+      </button>
+      <span class="opt-sep" aria-hidden="true"></span>
+      {#each DUE_OPTIONS as o (o.key)}
+        <button
+          type="button"
+          class="opt"
+          aria-pressed={addDue === o.key}
+          onmousedown={keepFocus}
+          onclick={() => pickDue(o.key)}
+        >
+          {o.label}{#if addDue === o.key}<Icon name="x" size={14} />{/if}
+        </button>
+      {/each}
+      <label class="opt" class:on={addDue === 'date'}>
+        <Icon name="calendar" size={16} />{addDue === 'date' ? weekdayDate(addDate) : 'Datum …'}
+        <input
+          type="date"
+          class="date-overlay"
+          aria-label="Datum wählen"
+          min={today}
+          value={addDate}
+          onchange={pickDate}
+          onclick={openPicker}
+        />
+      </label>
+    </div>
+  {/if}
+  <div class="add-row">
+    <div class="add-field">
+      <input
+        bind:this={addInput}
+        bind:value={newTitle}
+        oninput={() => newTitle === '' && resetAddOptions()}
+        type="text"
+        placeholder="Neue Aufgabe…"
+        aria-label="Neue Aufgabe"
+        enterkeyhint="done"
+        autocomplete="off"
+        maxlength="200"
+      />
+      {#if !addOpen && newTitle && (addHint || addHigh)}
+        <span class="add-hint" data-testid="add-hint">
+          {#if addHint}<span>{addHint}</span>{/if}
+          {#if addHigh}<span class="add-hint-flag" title="wichtig"><Icon name="flag" size={14} /></span>{/if}
+        </span>
+      {/if}
+    </div>
+    <button type="submit" class="add-btn" aria-label="Hinzufügen" onmousedown={keepFocus}><Icon name="plus" /></button>
+  </div>
 </form>
 
 {#if editing && list}

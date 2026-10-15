@@ -322,6 +322,7 @@ textarea {
   position: fixed;
   inset: auto 0 calc(var(--tab-h) + env(safe-area-inset-bottom)) 0;
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   max-width: 40rem;
   margin: 0 auto;
@@ -329,14 +330,97 @@ textarea {
   background: var(--bg);
   border-top: 1px solid var(--border);
 }
-.quick-add input {
+.add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.add-field {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
   height: var(--tap);
-  padding: 0 1rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
+}
+.add-field:focus-within {
+  border-color: var(--accent-text);
+}
+.add-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  outline: none;
+}
+/* what the closed bar remembers (non-default choices only) */
+.add-hint {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.add-hint-flag {
+  display: grid;
+}
+.add-opts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.opt {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.opt[aria-pressed='true'],
+.opt.on {
+  border-color: var(--accent-text);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.opt-sep {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+/* the native date picker opens from a tap anywhere on the "Datum" chip */
+.date-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 .add-btn {
   flex: none;

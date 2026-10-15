@@ -27,20 +27,21 @@ const openSheet = async (page: Page, title: string) => {
 const noHScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
 
-test('TC-26 Schnell hinzufügen: Enter legt eine Aufgabe unter Irgendwann an, Feld bleibt fokussiert', async ({ page }) => {
+test('TC-26 Schnell hinzufügen: Enter legt eine heute fällige Aufgabe an, Feld bleibt fokussiert', async ({ page }) => {
   const a = uniq('Schnell A');
   const b = uniq('Schnell B');
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Neue Aufgabe' });
   await input.fill(a);
   await input.press('Enter');
-  await expect(section(page, 'Irgendwann').getByText(a)).toBeVisible();
+  await expect(section(page, 'Fällig').getByText(a)).toBeVisible();
+  await expect(row(page, a)).toContainText('heute');
   await expect(input).toHaveValue('');
   await expect(input).toBeFocused();
   // second one in a row without tapping the field again
   await page.keyboard.type(b);
   await page.keyboard.press('Enter');
-  await expect(section(page, 'Irgendwann').getByText(b)).toBeVisible();
+  await expect(section(page, 'Fällig').getByText(b)).toBeVisible();
   // blank input adds nothing
   const before = await page.getByRole('listitem').count();
   await input.fill('   ');

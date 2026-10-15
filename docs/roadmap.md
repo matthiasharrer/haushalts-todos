@@ -21,20 +21,16 @@ Open by hand (Matthias):
    "Wäsche aufhängen" by 24 h; run it once for real. Also the real washer
    automation end to end (TC-82 so far ran the HA action by hand).
 
-## Quick-add (from real use, 2026-10-15)
+## Quick-add: open checks (Matthias, iPhone)
 
-- **Due date + priority in quick-add:** today the one-liner only creates a
-  title, so new tasks land in „irgendwann“. Mockups (A: chip row above the
-  field, B: chips inside the one-liner, C: quick-pick row Heute/Morgen/
-  Wochenende/Datum) are on a private design canvas; Matthias picks. Default
-  „Heute“, removable with one tap, plus a „Wichtig“ toggle.
-- **Keyboard jump (bug):** on the phone, focusing the quick-add field scrolls
-  the list to the top and the position is lost when the keyboard closes. Only
-  the bar should move up. Likely iOS Safari scrolling the document for a
-  focused input in a `position: fixed` bar; fix candidates: keep the bar on
-  `visualViewport` and focus with `preventScroll`, restore `scrollY` on blur;
-  `interactive-widget=resizes-content` covers Android Chrome only. Needs a
-  test on the real phone; do it together with the chips (same bar).
+- **Keyboard jump (TC-102):** focusing the quick-add field scrolled the list
+  to the top and the place was lost. Now the bar remembers `scrollY` on focus
+  and restores it once the keyboard is gone (`visualViewport` resize + 400 ms
+  fallback); Android also gets `interactive-widget=resizes-content`. Verified
+  in Chromium only. If iOS still jumps *while typing*, next step: drive the
+  bar's position from `visualViewport` instead of letting Safari scroll.
+- **Chips on the phone (TC-101):** tapping a chip must keep the keyboard open
+  (`mousedown` preventDefault); „Datum …“ opens the native picker.
 
 ## After the MVP
 

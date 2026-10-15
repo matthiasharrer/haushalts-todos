@@ -3,6 +3,18 @@
 Shipped roadmap entries, newest first. The reasoning is in `decisions/`, the
 test evidence in `testing.md`'s run log.
 
+## 2026-10-15
+
+- **Quick-add chips, shipped, unreleased.** Focusing the quick-add field shows
+  one row: „Wichtig“ | „Heute“ (default, pressed) · „Morgen“ · „Wochenende“ ·
+  „Datum …“. Tapping the pressed date chip removes the date („irgendwann“).
+  The choice survives leaving the field while there is text (a small hint in
+  the field shows what differs from the default) and resets after adding or
+  once the field is empty. Chosen by Matthias over a chips-in-the-field
+  variant (too little room to type). Plus the keyboard scroll fix (open
+  checks in `roadmap.md`). TC-100…102, TC-26 amended (quick-add is now due
+  today, not „irgendwann“).
+
 ## 2026-10-08
 
 - **„Neue Version verfügbar“ banner (ADR-0012), shipped, unreleased.** An app

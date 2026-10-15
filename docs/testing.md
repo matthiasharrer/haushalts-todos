@@ -78,7 +78,7 @@ feature.
 
 | ID    | Case |
 | ----- | ---- |
-| TC-26 | **Quick-add:** type a title in the "Neue Aufgabe" field at the bottom, press Enter → it appears under **Irgendwann**; the field is cleared and keeps focus (so several can be added in a row). Blank input adds nothing. |
+| TC-26 | **Quick-add:** type a title in the "Neue Aufgabe" field at the bottom, press Enter → it appears under **Fällig**, due „heute“ (the default chip, TC-101); the field is cleared and keeps focus (so several can be added in a row). Blank input adds nothing. |
 | TC-27 | **Sections:** headings appear in the order **Fällig · Irgendwann · Demnächst · Später** (ADR-0007), each with its count; empty sections are not shown. **Später** is collapsed by default (heading + count only) and expands on tap. With no tasks at all, an empty-state text is shown instead. |
 | TC-28 | **Tick off a recurring task** that is due today: tap its round check button → it leaves Fällig and shows up in Demnächst/Später with "zuletzt heute · Matthias". A toast "… erledigt" with **Rückgängig** appears; tapping Rückgängig puts it back in Fällig with its old due date. |
 | TC-29 | **Tick off a one-off:** it disappears from the list; Rückgängig in the toast brings it back. |
@@ -201,10 +201,21 @@ Unit: `apps/api/src/lib/followUp.test.ts` (fire time), `apps/web/src/lib/format.
 | TC-98 | **Check fails** (request aborted): no banner, no page error, no console error from the app. | scripted |
 | TC-99 | **Login redirect** (`302` to another origin, as with an expired Authelia session): no banner. | scripted |
 
+### Quick-add chips (scripted e2e at 390×844: `e2e/tests/quickadd-ui.spec.ts`; unit: `apps/web/src/lib/quickadd.test.ts`)
+
+The chip row (Wichtig | Heute · Morgen · Wochenende · Datum …) shows only while the quick-add bar has focus. Default: due today, not important.
+
+| ID     | Case | How |
+| ------ | ---- | --- |
+| TC-100 | **Dates:** `addDays` across month/year ends; `weekendDate` = the coming Saturday, or today on Saturday/Sunday. | unit |
+| TC-101 | **Chips:** no chip row while the field is unfocused; focusing shows it with „Heute“ pressed. Tapping chips keeps the field focused. „Wichtig“ + „Morgen“ → blur → the field shows a hint „morgen“ + flag; refocus → both still pressed. Adding → task in Demnächst, „wichtig“, „morgen“; the field stays focused and the chips are back to Heute / not Wichtig. Tapping the pressed „Heute“ → no date → Irgendwann. Clearing the text and leaving the field resets the choice. | scripted + eyes |
+| TC-102 | **Scroll position:** scrolled down the list, focus the field, the page is scrolled away (as a phone keyboard does), blur → the list is back at the old position. On the real iPhone: opening the keyboard doesn't lose the place. | scripted + **Matthias (iPhone)** |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-15 | Quick-add chips + scroll restore: TC-100…102 (new), TC-26/TC-40 amended (quick-add defaults to due today → Fällig), full suite + unit | **e2e 89/89** (36.3 s), **unit 58/58 (api) + 16/16 (web)**, svelte-check clean. Lead built and ran it (small frontend-only change). Lead eyes at 390×844 on :5173: row with „Wichtig“ first, „Heute ×“ pressed; Wichtig + Morgen → blur → „morgen ⚑“ hint in the field → refocus keeps both → + adds under Demnächst with „wichtig · morgen“, field stays focused, chips back to Heute. **TC-102 on the iPhone open: Matthias.** |
 | 2026-10-08 | ADR-0012 new-version banner: TC-96…99 (new) + `entryScript` unit tests, full suite + unit | **e2e 87/87** (32.4 s), **unit 58/58 (api) + 13/13 (web)**, tsc + svelte-check clean. Lead eyes at 390×844 on the built server (entry script forced to differ): pill under the safe-area top, light and dark, „Neu laden“ ≥ 48 px, no horizontal scroll. |
 | 2026-10-08 | In-range dependency refresh (MCP SDK 2.3, Playwright 1.64, hono, vite, svelte), full suite + unit | **e2e 83/83**, **unit 58/58 + 9/9**, tsc + svelte-check clean, lead run. |
 | 2026-10-08 (prod) | TC-71, TC-82 by hand (Matthias) | **TC-82 pass:** the HA `rest_command`, run by hand as an HA action, fired the trigger task in prod and the push arrived at once. The real washer automation hasn't run it yet. **TC-71 partial:** push works on Matthias's phone; Tina uses the app, her push is unconfirmed. **TC-95** not run yet. |
