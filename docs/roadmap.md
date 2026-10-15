@@ -21,6 +21,21 @@ Open by hand (Matthias):
    "Wäsche aufhängen" by 24 h; run it once for real. Also the real washer
    automation end to end (TC-82 so far ran the HA action by hand).
 
+## Quick-add (from real use, 2026-10-15)
+
+- **Due date + priority in quick-add:** today the one-liner only creates a
+  title, so new tasks land in „irgendwann“. Mockups (A: chip row above the
+  field, B: chips inside the one-liner, C: quick-pick row Heute/Morgen/
+  Wochenende/Datum) are on a private design canvas; Matthias picks. Default
+  „Heute“, removable with one tap, plus a „Wichtig“ toggle.
+- **Keyboard jump (bug):** on the phone, focusing the quick-add field scrolls
+  the list to the top and the position is lost when the keyboard closes. Only
+  the bar should move up. Likely iOS Safari scrolling the document for a
+  focused input in a `position: fixed` bar; fix candidates: keep the bar on
+  `visualViewport` and focus with `preventScroll`, restore `scrollY` on blur;
+  `interactive-widget=resizes-content` covers Android Chrome only. Needs a
+  test on the real phone; do it together with the chips (same bar).
+
 ## After the MVP
 
 Decide after a few weeks of real use, guided by what hurts:
