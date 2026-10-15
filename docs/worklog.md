@@ -3,6 +3,14 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-15 — manual checks closed
+
+- Matthias: Tina's pushes arrive, the real laundry chain with the washer
+  automation runs end to end, and the quick-add chips and scroll restore work
+  on the phone. Roadmap now has no open manual checks; next is real use.
+- No iPhone in the household (both Android): iOS-specific checks and
+  workarounds don't need verifying.
+
 ## 2026-10-15 — add_task nudges Claude to set due date + priority
 
 - Matthias: via MCP, Claude usually passed only the title, so actionable tasks

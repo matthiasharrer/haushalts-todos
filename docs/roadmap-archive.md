@@ -5,6 +5,12 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-15
 
+- **All manual checks passed (Matthias).** Tina's phone gets pushes (TC-71),
+  the real washer automation fires „Wäsche aufhängen“ and „Wäsche aufräumen“
+  follows 24 h later (TC-82, TC-95), and the quick-add chips and scroll
+  restore work on the phone (TC-101, TC-102). There's no iPhone in the
+  household, so the iOS checks were dropped.
+
 - **Quick-add chips, released in `v0.7.0`.** Focusing the quick-add field shows
   one row: „Wichtig“ | „Heute“ (default, pressed) · „Morgen“ · „Wochenende“ ·
   „Datum …“. Tapping the pressed date chip removes the date („irgendwann“).

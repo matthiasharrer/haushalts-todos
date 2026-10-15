@@ -209,12 +209,13 @@ The chip row (Wichtig | Heute · Morgen · Wochenende · Datum …) shows only w
 | ------ | ---- | --- |
 | TC-100 | **Dates:** `addDays` across month/year ends; `weekendDate` = the coming Saturday, or today on Saturday/Sunday. | unit |
 | TC-101 | **Chips:** no chip row while the field is unfocused; focusing shows it with „Heute“ pressed. Tapping chips keeps the field focused. „Wichtig“ + „Morgen“ → blur → the field shows a hint „morgen“ + flag; refocus → both still pressed. Adding → task in Demnächst, „wichtig“, „morgen“; the field stays focused and the chips are back to Heute / not Wichtig. Tapping the pressed „Heute“ → no date → Irgendwann. Clearing the text and leaving the field resets the choice. | scripted + eyes |
-| TC-102 | **Scroll position:** scrolled down the list, focus the field, the page is scrolled away (as a phone keyboard does), blur → the list is back at the old position. On the real iPhone: opening the keyboard doesn't lose the place. | scripted + **Matthias (iPhone)** |
+| TC-102 | **Scroll position:** scrolled down the list, focus the field, the page is scrolled away (as a phone keyboard does), blur → the list is back at the old position. On the real phone (Android): opening the keyboard doesn't lose the place. | scripted + **Matthias (phone)** |
 
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-15 (prod) | TC-71, TC-82, TC-95, TC-101, TC-102 by hand (Matthias) | **All pass.** Tina's phone gets pushes; the real washer automation fired the trigger task and the 24 h follow-up arrived with a push; chips and scroll restore work on the phone. No iPhone in the household, so the iOS part of TC-102 is dropped. |
 | 2026-10-15 (release) | `v0.7.0`: update banner (ADR-0012), quick-add chips + scroll restore, MCP `add_task` nudge | Same code as the 2026-10-15 run below (only docs changed since): **e2e 89/89**, **unit 58/58 + 16/16**, svelte-check clean. **TC-102 on the iPhone open: Matthias.** |
 | 2026-10-15 | Quick-add chips + scroll restore: TC-100…102 (new), TC-26/TC-40 amended (quick-add defaults to due today → Fällig), full suite + unit | **e2e 89/89** (36.3 s), **unit 58/58 (api) + 16/16 (web)**, svelte-check clean. Lead built and ran it (small frontend-only change). Lead eyes at 390×844 on :5173: row with „Wichtig“ first, „Heute ×“ pressed; Wichtig + Morgen → blur → „morgen ⚑“ hint in the field → refocus keeps both → + adds under Demnächst with „wichtig · morgen“, field stays focused, chips back to Heute. **TC-102 on the iPhone open: Matthias.** |
 | 2026-10-08 | ADR-0012 new-version banner: TC-96…99 (new) + `entryScript` unit tests, full suite + unit | **e2e 87/87** (32.4 s), **unit 58/58 (api) + 13/13 (web)**, tsc + svelte-check clean. Lead eyes at 390×844 on the built server (entry script forced to differ): pill under the safe-area top, light and dark, „Neu laden“ ≥ 48 px, no horizontal scroll. |
