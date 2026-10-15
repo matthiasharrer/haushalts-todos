@@ -3,6 +3,15 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-15 — add_task nudges Claude to set due date + priority
+
+- Matthias: via MCP, Claude usually passed only the title, so actionable tasks
+  landed in „irgendwann“. The `add_task` description (and the `due_date` field)
+  now tell the model to set `due_date` to today when the task can and should be
+  done from now on, to derive `priority` from context, and to name both in its
+  reply so the person can correct them. Prompt-only, no behaviour change.
+- Unreleased; Claude clients pick it up after deploy (reconnect if cached).
+
 ## 2026-10-08 — „Neue Version verfügbar“ banner (ADR-0012)
 
 - Matthias missed the new „Folgt auf“ field because the phone kept the old

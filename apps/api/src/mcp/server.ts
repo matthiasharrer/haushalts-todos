@@ -260,12 +260,20 @@ export function buildMcpServer(): McpServer {
         'Legt eine neue Aufgabe an (einmalig, wiederkehrend oder auf Auslöser). Sie wird der verbundenen Person ' +
         'als Ersteller zugeschrieben. Ohne due_date ist sie "irgendwann"; eine wiederkehrende ' +
         'Aufgabe ohne due_date ist heute fällig. Mit trigger entsteht eine wartende Auslöser-Aufgabe ' +
-        '(due_date wird ignoriert); mit trigger.after {task_id, hours} wird sie stattdessen hours Stunden nach dem Erledigen einer anderen Aufgabe fällig.',
+        '(due_date wird ignoriert); mit trigger.after {task_id, hours} wird sie stattdessen hours Stunden nach dem Erledigen einer anderen Aufgabe fällig. ' +
+        'Nicht nur den Titel übergeben, sondern due_date und priority bewusst mitsetzen: Kann und sollte die ' +
+        'Aufgabe ab jetzt erledigt werden, due_date auf heute setzen (oder auf den genannten bzw. sinnvollen Tag); ' +
+        'ohne due_date nur, wenn es wirklich keine Eile hat ("irgendwann"). priority aus dem Kontext ableiten: ' +
+        'HIGH für Wichtiges/Dringendes, LOW für Nice-to-have, sonst NORMAL. In der Antwort kurz nennen, ' +
+        'welche Fälligkeit und Priorität gesetzt wurden, damit die Person korrigieren kann.',
       inputSchema: z.object({
         title: z.string().describe('Titel, kurz und knapp (max. 200 Zeichen).'),
         notes: z.string().optional().describe('Notizen, optional.'),
         priority: prioritySchema.optional(),
-        due_date: z.string().optional().describe(`Fälligkeitsdatum. ${dateDescription} Weglassen = kein Datum.`),
+        due_date: z
+          .string()
+          .optional()
+          .describe(`Fälligkeitsdatum. ${dateDescription} Heute, wenn es ab jetzt erledigt werden sollte. Weglassen = "irgendwann".`),
         recurrence: recurrenceSchema.optional(),
         trigger: triggerSchema.optional(),
         notify: notifySchema.optional(),
