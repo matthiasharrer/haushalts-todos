@@ -5,7 +5,7 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-15
 
-- **Quick-add chips, shipped, unreleased.** Focusing the quick-add field shows
+- **Quick-add chips, released in `v0.7.0`.** Focusing the quick-add field shows
   one row: „Wichtig“ | „Heute“ (default, pressed) · „Morgen“ · „Wochenende“ ·
   „Datum …“. Tapping the pressed date chip removes the date („irgendwann“).
   The choice survives leaving the field while there is text (a small hint in
@@ -17,7 +17,7 @@ test evidence in `testing.md`'s run log.
 
 ## 2026-10-08
 
-- **„Neue Version verfügbar“ banner (ADR-0012), shipped, unreleased.** An app
+- **„Neue Version verfügbar“ banner (ADR-0012), released in `v0.7.0`.** An app
   left open in the background kept the old bundle for days (Matthias missed
   „Folgt auf“ until he killed the app). When the page returns to the
   foreground it fetches `index.html`, compares the hashed entry script with

@@ -10,7 +10,7 @@
   now tell the model to set `due_date` to today when the task can and should be
   done from now on, to derive `priority` from context, and to name both in its
   reply so the person can correct them. Prompt-only, no behaviour change.
-- Unreleased; Claude clients pick it up after deploy (reconnect if cached).
+- Released in `v0.7.0` (with the quick-add chips and the update banner); Claude clients pick it up after deploy (reconnect if cached).
 - Quick-add chips (Matthias's call after three mockups on a private design
   canvas): row only while focused, „Wichtig“ first because at 390 px the end
   of the row scrolls out of view. Choice kept across blur while there is text.
