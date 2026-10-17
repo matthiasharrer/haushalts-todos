@@ -31,12 +31,18 @@
   // The API lists fired trigger tasks first, then the waiting ones.
   const triggerTasks = $derived(data?.tasks.filter((t) => t.trigger !== null) ?? []);
 
+  // Background refetches can overlap a mutation's; only the latest may land,
+  // or an older response would put back a state from before the change.
+  let latest = 0;
   async function refresh() {
+    const seq = ++latest;
     try {
-      data = await listRecurring();
+      const next = await listRecurring();
+      if (seq !== latest) return;
+      data = next;
       loadError = null;
     } catch (e) {
-      loadError = messageOf(e);
+      if (seq === latest) loadError = messageOf(e);
     }
   }
 

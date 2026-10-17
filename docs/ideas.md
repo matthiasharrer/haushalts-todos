@@ -46,6 +46,8 @@
 
 ## Maybe later
 
+- **Truly live list (SSE)** instead of the 30 s poll (ADR-0013), if the delay
+  ever bothers anyone with both phones open.
 - **"Erledigt" button in the notification** (Android supports actions). The
   service worker would call the API through Authelia; an expired session
   means a 302 it must handle (ADR-0009).

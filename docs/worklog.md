@@ -3,6 +3,14 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-17 — list refreshes on its own (ADR-0013)
+
+- Matthias: the installed app showed stale tasks when reopened. Cause: the SPA
+  only fetched on mount and after its own changes; a PWA in the background
+  never remounts. Now it refetches on return to the foreground and every 30 s
+  while visible; `refresh()` drops out-of-order responses. SSE judged not
+  worth it for two people (ideas.md). TC-105 on the phone open.
+
 ## 2026-10-15 — manual checks closed
 
 - Matthias: Tina's pushes arrive, the real laundry chain with the washer

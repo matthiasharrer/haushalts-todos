@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-15 (`v0.7.0` in use; no open manual checks)_
+_Last updated: 2026-10-17 (`v0.7.0` in use; unreleased: list refresh, ADR-0013)_
 
 ## Next — MVP in real use
 
@@ -14,6 +14,9 @@ for a few weeks before building more.
 
 Both users are on Android; there is no iPhone in the household, so iOS-only
 checks don't apply.
+
+Open manual check: **TC-105** (list refresh on reopening the installed app,
+ADR-0013) after the next release.
 
 ## After the MVP
 

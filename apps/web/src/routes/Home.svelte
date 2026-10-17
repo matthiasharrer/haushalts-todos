@@ -116,12 +116,18 @@
     list ? SECTIONS.reduce((n, s) => n + list!.sections[s.key].length, 0) : 0,
   );
 
+  // Background refetches can overlap a mutation's; only the latest may land,
+  // or an older response would put back a state from before the change.
+  let latest = 0;
   async function refresh() {
+    const seq = ++latest;
     try {
-      list = await listTasks();
+      const next = await listTasks();
+      if (seq !== latest) return;
+      list = next;
       loadError = null;
     } catch (e) {
-      loadError = messageOf(e);
+      if (seq === latest) loadError = messageOf(e);
     }
   }
 
