@@ -3,6 +3,13 @@
 Shipped roadmap entries, newest first. The reasoning is in `decisions/`, the
 test evidence in `testing.md`'s run log.
 
+## 2026-10-17
+
+- **List refreshes on its own (ADR-0013), released in `v0.8.0`.** The
+  installed app showed a stale list when reopened. It now refetches when it
+  returns to the foreground and every 30 s while visible; out-of-order
+  responses are dropped. TC-105 on the phone open.
+
 ## 2026-10-15
 
 - **All manual checks passed (Matthias).** Tina's phone gets pushes (TC-71),

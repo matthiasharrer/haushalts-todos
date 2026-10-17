@@ -225,6 +225,7 @@ The chip row (Wichtig | Heute · Morgen · Wochenende · Datum …) shows only w
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-17 (release) | `v0.8.0`: list refresh (ADR-0013) | Same code as the 2026-10-17 run below (only docs changed since): **e2e 91/91**, **unit 58/58 + 16/16**, svelte-check clean. **TC-105 on the phone open: Matthias.** |
 | 2026-10-17 | Fresh list (ADR-0013): TC-103…105 (new), full suite | **e2e 91/91** (35.0 s), **unit 16/16 (web)**, svelte-check clean. Lead built and ran it (small frontend-only change). **TC-105 on the phone open: Matthias.** |
 | 2026-10-15 (prod) | TC-71, TC-82, TC-95, TC-101, TC-102 by hand (Matthias) | **All pass.** Tina's phone gets pushes; the real washer automation fired the trigger task and the 24 h follow-up arrived with a push; chips and scroll restore work on the phone. No iPhone in the household, so the iOS part of TC-102 is dropped. |
 | 2026-10-15 (release) | `v0.7.0`: update banner (ADR-0012), quick-add chips + scroll restore, MCP `add_task` nudge | Same code as the 2026-10-15 run below (only docs changed since): **e2e 89/89**, **unit 58/58 + 16/16**, svelte-check clean. **TC-102 on the iPhone open: Matthias.** |

@@ -9,7 +9,8 @@
   only fetched on mount and after its own changes; a PWA in the background
   never remounts. Now it refetches on return to the foreground and every 30 s
   while visible; `refresh()` drops out-of-order responses. SSE judged not
-  worth it for two people (ideas.md). TC-105 on the phone open.
+  worth it for two people (ideas.md). Released in `v0.8.0`; TC-105 on the
+  phone open.
 
 ## 2026-10-15 — manual checks closed
 
