@@ -3,6 +3,13 @@
 Shipped roadmap entries, newest first. The reasoning is in `decisions/`, the
 test evidence in `testing.md`'s run log.
 
+## 2026-10-25
+
+- **Distroless runtime image (ADR-0014), released in `v0.8.1`.** Trivy
+  flagged 4 Critical / 21 High in `0.8.0`, nearly all from the Debian base and
+  the bundled npm. The runtime is now `distroless/nodejs22-debian12`, the
+  entrypoint is a Node script, zod is on 4.6.7. TC-106 after deploy open.
+
 ## 2026-10-17
 
 - **List refreshes on its own (ADR-0013), released in `v0.8.0`.** The

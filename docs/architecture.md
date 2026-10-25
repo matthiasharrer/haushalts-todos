@@ -1,7 +1,7 @@
 # Architecture
 
 _The current picture. The reasoning is in `decisions/`. Last updated:
-2026-10-02 (task core API)._
+2026-10-25 (distroless runtime image, ADR-0014)._
 
 ## Overview
 
@@ -16,8 +16,9 @@ Claude ──▶ Ingress (Authelia-EXEMPT: /mcp*, /.well-known/*) ──▶ same
 
 One Node process serves the API and the built Svelte SPA (`WEB_DIST`,
 `apps/api/src/static.ts`). Single replica, because SQLite lives on the PVC.
-`docker-entrypoint.sh` snapshots the DB, then runs `prisma migrate deploy`,
-then starts the server.
+The runtime image is distroless (no shell, no npm; ADR-0014).
+`docker-entrypoint.mjs` snapshots the DB, runs `prisma migrate deploy`, then
+starts the server in the same process.
 
 ## Auth and identity
 

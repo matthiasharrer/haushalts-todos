@@ -5,7 +5,7 @@
 > being ticked off here. Ideas that aren't scheduled live in `ideas.md`; the
 > reasoning behind decisions lives in `decisions/`.
 
-_Last updated: 2026-10-17 (`v0.8.0` released: list refresh, ADR-0013)_
+_Last updated: 2026-10-25 (`v0.8.1` released: distroless image, ADR-0014)_
 
 ## Next — MVP in real use
 
@@ -17,6 +17,10 @@ checks don't apply.
 
 Open manual check: **TC-105** (list refresh on reopening the installed app,
 ADR-0013), released in `v0.8.0`.
+
+Open after deploy: **TC-106** (distroless image, ADR-0014, `v0.8.1`): pod
+starts, Trivy report clean of the Debian/npm findings. Then port the same
+image to rezepte and xitl-mcp.
 
 ## After the MVP
 

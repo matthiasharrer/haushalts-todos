@@ -3,6 +3,19 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-25 — distroless image (ADR-0014)
+
+- Matthias asked to check the Trivy scans (Trivy Operator in the cluster;
+  metrics `trivy_image_vulnerabilities` / `trivy_vulnerability_id` in
+  Prometheus, via the Grafana connector). All three apps had nearly the same
+  findings from `node:22-slim` + bundled npm. On his call: distroless, starting
+  here, released directly as `v0.8.1`.
+- `docker-entrypoint.sh` → `docker-entrypoint.mjs` (no shell in distroless).
+  Gotchas: UID 1000 not `nonroot` (PVC ownership), `HOME=/tmp` (Prisma's
+  `os.homedir()`), pin bookworm everywhere, CI `pull: true`.
+- **Next:** TC-106 after the deploy (Trivy report for `0.8.1`), then port to
+  rezepte (also has `/data/images`) and xitl-mcp.
+
 ## 2026-10-17 — list refreshes on its own (ADR-0013)
 
 - Matthias: the installed app showed stale tasks when reopened. Cause: the SPA

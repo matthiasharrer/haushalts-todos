@@ -15,3 +15,4 @@
 | 0011 | [Follow-ups: a trigger task fires a set number of hours after another task is done](0011-follow-up-triggers.md) | Accepted |
 | 0012 | [„Neue Version verfügbar“: compare the entry script when the app returns to the foreground](0012-new-version-banner.md) | Accepted |
 | 0013 | [Fresh list: refetch on return to the foreground, poll every 30 s while visible](0013-refresh-on-foreground.md) | Accepted |
+| 0014 | [Distroless runtime image, entrypoint in Node](0014-distroless-runtime-image.md) | Accepted |

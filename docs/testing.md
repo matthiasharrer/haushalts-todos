@@ -221,10 +221,17 @@ The chip row (Wichtig | Heute · Morgen · Wochenende · Datum …) shows only w
 | TC-104 | **Poll:** app open and visible, Anna adds a task → still absent after 29 s, there after 31 s. | scripted |
 | TC-105 | **Real phone:** installed app in the background, the other person adds or ticks off a task, reopen the app → the list is current within a second or two. | **Matthias (phone)** |
 
+### Distroless runtime image (ADR-0014)
+
+| #      | Case | Who |
+| ------ | ---- | --- |
+| TC-106 | **After deploy of `v0.8.1`:** the pod starts (logs: snapshot, „No pending migrations“, „API listening“), `/api/health` reports `0.8.1`, the app works on the phone, and the Trivy report for the new tag has no Critical and no Debian/npm findings. | Lead (Grafana/Loki/Trivy metrics) + Matthias (app opens) |
+
 ## Run log
 
 | Date | Scope | Result |
 | ---- | ----- | ------ |
+| 2026-10-25 (release) | `v0.8.1`: distroless runtime image, Node entrypoint (ADR-0014), zod 4.6.7 | **e2e 91/91**, **unit 58/58 + 16/16**, tsc + svelte-check clean. Entrypoint run with an empty environment (no PATH) against a copy of the dev DB: snapshot + retention to 5, first deploy (all 7 migrations), recorded failed migration (no snapshot, P3009, exit 1), unwritable backup dir (fails closed, no migration), SIGTERM → clean exit. Image not buildable here; **TC-106 after deploy open.** |
 | 2026-10-17 (release) | `v0.8.0`: list refresh (ADR-0013) | Same code as the 2026-10-17 run below (only docs changed since): **e2e 91/91**, **unit 58/58 + 16/16**, svelte-check clean. **TC-105 on the phone open: Matthias.** |
 | 2026-10-17 | Fresh list (ADR-0013): TC-103…105 (new), full suite | **e2e 91/91** (35.0 s), **unit 16/16 (web)**, svelte-check clean. Lead built and ran it (small frontend-only change). **TC-105 on the phone open: Matthias.** |
 | 2026-10-15 (prod) | TC-71, TC-82, TC-95, TC-101, TC-102 by hand (Matthias) | **All pass.** Tina's phone gets pushes; the real washer automation fired the trigger task and the 24 h follow-up arrived with a push; chips and scroll restore work on the phone. No iPhone in the household, so the iOS part of TC-102 is dropped. |
