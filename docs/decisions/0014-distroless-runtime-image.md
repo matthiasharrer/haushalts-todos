@@ -65,3 +65,18 @@ The only reason the image needed a shell and npm was `docker-entrypoint.sh`
   builds. The project deliberately stays on glibc.
 - **Chainguard `cgr.dev/chainguard/node`.** Even smaller, but only `latest` is
   free; pinned versions cost money.
+
+## Amendment 2026-10-26 (`v0.8.2`): own Node binary, CI smoke test
+
+- **Base `distroless/cc-debian12` + the Node binary from `node:22-bookworm-slim`**
+  (copied to the same path, `/nodejs/bin/node`). Trigger: CVE-2026-111497
+  ("Node2Shell", Brotli decoder RCE), fixed in Node 22.23.4 on 2026-10-21;
+  `distroless/nodejs22-debian12` still shipped 22.22.0 on 2026-10-26. cc has
+  every library node, sharp, better-sqlite3 and the schema engine link
+  against (checked against the image's file list). The deps stage fails the
+  build on any Node below 22.23.4.
+- **CI smoke test before the push:** the image is built with `load: true`,
+  booted on an empty volume (first deploy, all migrations), restarted
+  (snapshot path) and must answer `/api/health` both times. xitl-mcp
+  `v0.17.1` crashlooped in production on a nested `node_modules` the image
+  lacked; this step would have stopped it in CI.
