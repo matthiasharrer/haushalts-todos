@@ -18,9 +18,9 @@ checks don't apply.
 Open manual check: **TC-105** (list refresh on reopening the installed app,
 ADR-0013), released in `v0.8.0`.
 
-Open after deploy: **TC-106** (distroless image, ADR-0014, `v0.8.1`): pod
-starts, Trivy report clean of the Debian/npm findings. Then port the same
-image to rezepte and xitl-mcp.
+Next infra step: port the distroless image (ADR-0014, passed in production
+2026-10-26) to rezepte and xitl-mcp. The libssl3 finding left in `0.8.1` goes
+away with the next build once distroless ships OpenSSL 3.0.19 (`pull: true`).
 
 ## After the MVP
 

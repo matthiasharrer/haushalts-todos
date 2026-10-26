@@ -13,8 +13,12 @@
 - `docker-entrypoint.sh` → `docker-entrypoint.mjs` (no shell in distroless).
   Gotchas: UID 1000 not `nonroot` (PVC ownership), `HOME=/tmp` (Prisma's
   `os.homedir()`), pin bookworm everywhere, CI `pull: true`.
-- **Next:** TC-106 after the deploy (Trivy report for `0.8.1`), then port to
-  rezepte (also has `/data/images`) and xitl-mcp.
+- The deploy waits for a **Flux image-update PR in the GitOps repo** that
+  Matthias merges; `0.8.1` sat on `0.8.0` overnight until he did. TC-106
+  passed on 2026-10-26: Critical 4 → 1, High 21 → 6. What's left is libssl3 in
+  distroless (fixed upstream, comes with the next build) and the Prisma CLI's
+  mysql2/deepmerge-ts.
+- **Next:** port to rezepte (also has `/data/images`) and xitl-mcp.
 
 ## 2026-10-17 — list refreshes on its own (ADR-0013)
 
