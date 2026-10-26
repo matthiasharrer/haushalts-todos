@@ -3,6 +3,15 @@
 > One short entry **per working session**, newest first: where we left off, why,
 > dead-ends, gotchas. Git covers the fine-grained "what".
 
+## 2026-10-26 — Node2Shell: own Node binary, CI smoke test (`v0.8.2`)
+
+- Brotli RCE CVE-2026-111497: all three apps ran Node 22.22.0 because
+  `distroless/nodejs22` hadn't picked up 22.23.4. Now `distroless/cc` plus
+  the official image's node binary, version floor enforced in the Dockerfile.
+- xitl `v0.17.1` had crashlooped (nested `node_modules` missing from the
+  image); the preventive fix landed here too (`f2293ac`), and every repo now
+  boots the image in CI before pushing.
+
 ## 2026-10-25 — distroless image (ADR-0014)
 
 - Matthias asked to check the Trivy scans (Trivy Operator in the cluster;
